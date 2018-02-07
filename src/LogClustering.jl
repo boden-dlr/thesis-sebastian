@@ -1,5 +1,5 @@
 module LogClustering
 
-# package code goes here
+    include("KATE.jl")
 
 end # module
