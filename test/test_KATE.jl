@@ -4,6 +4,7 @@ using Base.Test
 using Flux
 using Flux: throttle
 using Flux: crossentropy #, binarycrossentropy
+using Juno: @progress
 
 cd(@__DIR__)
 
@@ -37,14 +38,19 @@ function loss(xs, ys)
 end
 
 function evaluation_callback()
-    l = loss(Xs[1], Ys[1])
-    @show l
+    @show loss(Xs[1], Ys[1])
 end
 
 opt = Flux.ADADelta(params(m))
 
-Flux.train!(loss, zip(Xs, Ys), opt,
-            cb = throttle(evaluation_callback, 30))
+@progress for i = 1:5000
+    info("Epoch $i")
+    Flux.train!(
+        loss,
+        zip(Xs, Ys),
+        opt,
+        cb = evaluation_callback)
+end
 
 # function sample(m, alphabet, len; temp = 1)
 #     buf = IOBuffer()
