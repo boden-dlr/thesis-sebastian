@@ -67,7 +67,7 @@ function (a::KCompetetive)(x)
   ns = Vector{Float64}()
 
   for (i, activation) = enumerate(data(x))
-    if activation > 0
+    if activation >= 0
         push!(ps, activation)
     else
         push!(ns, activation)
