@@ -104,7 +104,7 @@ function (a::KCompetetive)(x)
     end    
   end
   
-  z = param(vcat(reverse(ps),ns))
+  z = vcat(reverse(ps),ns) #needs to be param?!
   # z = param(rand(k))
   # z = x
   # @show z
