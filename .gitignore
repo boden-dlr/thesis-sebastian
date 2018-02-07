@@ -1,3 +1,11 @@
 *.jl.cov
 *.jl.*.cov
 *.jl.mem
+
+*.txt
+*.csv
+*.json
+*.xml
+*.data
+*.model
+*.ods
