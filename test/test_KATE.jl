@@ -11,9 +11,8 @@ isfile("input.txt") ||
   download("http://cs.stanford.edu/people/karpathy/char-rnn/shakespeare_input.txt",
            "input.txt")
 
-input, wc = KATE.normalize_input("input.txt", 1000)
+input = KATE.transform_text_to_input("input.txt", 1000)
 # @show typeof(input), typeof(wc)
-words = keys(wc)
 
 # Xs, Ys = deepcopy(input), deepcopy(input)
 # Xs, Ys = deepcopy([input]), deepcopy([input])

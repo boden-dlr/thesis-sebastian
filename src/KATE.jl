@@ -29,14 +29,14 @@ function normalize_log(text::Array{String}, word_counts::Dict{String,Int64})
     map(word -> nl(word,word_counts,V), text)
 end
 
-function normalize_input(src::String, limit::Int=1000)
+function transform_text_to_input(src::String, limit::Int=1000)
     text_raw = readstring(src)
     text = map(s -> String(s), 
         filter(non_empty_string, split(text_raw, r"[^\wäÄöÖüÜ&]+")))
     text = text[1:limit]
     word_counts = count_words(text)
     input = normalize_log(text, word_counts)
-    return input, word_counts
+    return input
 end
 
 struct KCompetetive{F,S,T}
