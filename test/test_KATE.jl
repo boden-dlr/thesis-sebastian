@@ -12,8 +12,8 @@ isfile("input.txt") ||
   download("http://cs.stanford.edu/people/karpathy/char-rnn/shakespeare_input.txt",
            "input.txt")
 
-input = KATE.transform_text_to_input("input.txt", 1000)
-# @show typeof(input), typeof(wc)
+input, wc = KATE.transform_text_to_input("input.txt", 1000)
+vocabulary = collect(keys(wc))
 
 # Xs, Ys = deepcopy(input), deepcopy(input)
 # Xs, Ys = deepcopy([input]), deepcopy([input])
@@ -24,11 +24,12 @@ Xs, Ys = [deepcopy(input)], [deepcopy(input)]
 
 N = length(input)
 
+k = 64
+
 m = Chain(
-    Dense(N, 128, tanh),
-    KCompetetive(128, 128, tanh),
-    Dense(128, N, sigmoid),
-    softmax)
+    KCompetetive(N, k, tanh),
+    Dense(k, N, sigmoid)
+)
 
 function loss(xs, ys)
     # @show typeof(xs), typeof(ys)
@@ -43,21 +44,13 @@ end
 
 opt = Flux.ADADelta(params(m))
 
-@progress for i = 1:5000
+@progress for i = 1:10
     info("Epoch $i")
     Flux.train!(
         loss,
         zip(Xs, Ys),
         opt,
-        cb = evaluation_callback)
+        cb = throttle(evaluation_callback, 30))
 end
 
-# function sample(m, alphabet, len; temp = 1)
-#     buf = IOBuffer()
-#     c = rand(alphabet)
-#     for i = 1:len
-#         write(buf, c)
-#         c = wsample(alphabet, m(onehot(c, alphabet)).data)
-#     end
-#     return String(take!(buf))
-# end
+# @show KATE.get_similar_words(m, 1, vocabulary)
