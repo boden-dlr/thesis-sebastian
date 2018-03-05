@@ -40,8 +40,12 @@ function split_overlapping(text::Array{String}, selector::Regex)
         end
     end
 
-    prefix = text[1:first_all-1]
-    suffix = text[last_all+1:end]
+    prefix = text[2:first_all]
+    suffix = text[last_all+2:end]
+    if length(prefix) > 0 && length(suffix) > 0 && prefix == suffix
+        prefix = append!([text[1]], prefix)
+        suffix = append!([text[1]], suffix)
+    end
 
     @NT(prefix=prefix, splitted=splitted, suffix=suffix)
 end
