@@ -47,6 +47,3 @@ assert(all(result.splitted[key].from == expected[key].from for key in keys(expec
 assert(all(result.splitted[key].to == expected[key].to for key in keys(expected)))
 assert(result.prefix.content == ["prefix","prefix","prefix"])
 assert(result.suffix.content == ["suffix","suffix","suffix","suffix"])
-
-text = [randstring() for _ in 1:100000]
-@time Log.split_overlapping(text, r"(ab)"i)
