@@ -51,10 +51,10 @@ function split_overlapping(text::Array{String}, selector::Regex)
         end
     end
 
-    prefix = text[1:first_all-1]
-    suffix = text[last_all+1:end]
-    if prefix == suffix[1:end-1]
-        prefix = push!(prefix, text[end])
+    prefix = Occurence(1,first_all-1,text[1:first_all-1])
+    suffix = Occurence(last_all+1, length(text), text[last_all+1:end])
+    if prefix.content == suffix.content[1:end-1]
+        prefix = Occurence(1, length(text), text)
     end
 
     @NT(prefix=prefix, splitted=splitted, suffix=suffix)

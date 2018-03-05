@@ -1,3 +1,4 @@
+using Base.Test
 using LogClustering.Log
 
 # test with some dummy data
@@ -12,10 +13,10 @@ text = [
 
 result = Log.split_overlapping(text, r"this text will never be found")
 assert(result.prefix == result.suffix)
-assert(result.prefix == text)
-assert(result.prefix == text)
-assert(length(result.prefix) == 6)
-assert(length(result.suffix) == 6)
+assert(result.prefix.content == text)
+assert(result.prefix.content == text)
+assert(length(result.prefix.content) == 6)
+assert(length(result.suffix.content) == 6)
 
 # test: find an ID by a given selector
 text = [
@@ -40,8 +41,8 @@ expected = Dict(
     "c" => Log.Occurence(8,9,text[8:9]),
 )
 assert(result.splitted == expected)
-assert(result.prefix == ["prefix","prefix","prefix"])
-assert(result.suffix == ["suffix","suffix","suffix"])
+assert(result.prefix.content == ["prefix","prefix","prefix"])
+assert(result.suffix.content == ["suffix","suffix","suffix"])
 
 # test with a log file
 regex_workflow = r"Workflow \'(\S*?)\'"i
@@ -60,8 +61,8 @@ for key in keys(result.splitted)
     ])
     assert(length(result.splitted[key].content) in [94,490,89,40,37,55,86,])
 end
-assert(length(result.prefix) == 725)
-assert(length(result.suffix) == 19)
+assert(length(result.prefix.content) == 725)
+assert(length(result.suffix.content) == 19)
 
 # test with a big log file
 text = readlines("data/logs/2018-01-31_13-15-07_70734.log")
@@ -70,8 +71,8 @@ for key in keys(result.splitted)
     assert(key in ["MDO_CO_Sellar_2018-01-31_12:51:00_01"])
     assert(length(result.splitted[key].content) in [69924])
 end
-assert(length(result.prefix) == 754)
-assert(length(result.suffix) == 56)
+assert(length(result.prefix.content) == 754)
+assert(length(result.suffix.content) == 56)
 
 text = readlines("data/logs/2018-03-01_15-11-18_51750.log")
 result = Log.split_overlapping(text, regex_workflow)
@@ -246,5 +247,5 @@ for key in keys(result.splitted)
         54,48,39,67,132,157,67,39,51,115,155,67,35,117,115,115,168,55,
         1600,42,115,370,67,123,67,337,236,155,109,73,128])
 end
-assert(length(result.prefix) == 856)
-assert(length(result.suffix) == 0)
+assert(length(result.prefix.content) == 856)
+assert(length(result.suffix.content) == 0)
