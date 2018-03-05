@@ -80,7 +80,6 @@ assert(wordcount == wordcount_expected)
 #
 # Test 4 - replacements
 #
-
 replacements = [
     (r"line", "LINE")
 ]
@@ -115,7 +114,6 @@ assert(wordcount == wordcount_expected)
 #
 # Test 5 - lowercase
 #
-
 tokenized, wordcount = NLP.tokenize(text, lower = true)
 tokenized_expected = Array{String,1}[
     String["this", "is", "my", "first", "line"],
