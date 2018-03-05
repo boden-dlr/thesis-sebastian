@@ -17,21 +17,29 @@ assert(length(result.suffix) == 6)
 
 # test: find an ID by a given selector
 text = [
-    string(randstring(), " Prefix 'a' ", randstring()),
-    string(randstring(), " Prefix 'b' ", randstring()),
-    string(randstring(), " Prefix 'a' ", randstring()),
-    string(randstring(), " Prefix 'b' ", randstring()),
-    string(randstring(), " Prefix 'c' ", randstring()),
-    string(randstring(), " Prefix 'c' ", randstring()),
+    "prefix",
+    "prefix",
+    "prefix",
+    string(randstring(), " Marker 'a' ", randstring()),
+    string(randstring(), " Marker 'b' ", randstring()),
+    string(randstring(), " Marker 'a' ", randstring()),
+    string(randstring(), " Marker 'b' ", randstring()),
+    string(randstring(), " Marker 'c' ", randstring()),
+    string(randstring(), " Marker 'c' ", randstring()),
+    "suffix",
+    "suffix",
+    "suffix",
 ]
 
-result = Log.split_overlapping(text, r"Prefix \'(.*?)\'")
-expected = Dict("a" => text[1:3],
-    "b" => text[2:4],
-    "c" => text[5:6],)
+result = Log.split_overlapping(text, r"Marker \'(.*?)\'")
+expected = Dict(
+    "a" => Log.Occurence(4,6,text[4:6]),
+    "b" => Log.Occurence(5,7,text[5:7]),
+    "c" => Log.Occurence(8,9,text[8:9]),
+)
 assert(result.splitted == expected)
-assert(result.prefix == [])
-assert(result.suffix == [])
+assert(result.prefix == ["prefix","prefix","prefix"])
+assert(result.suffix == ["suffix","suffix","suffix"])
 
 # test with a log file
 regex_workflow = r"Workflow \'(\S*?)\'"i
@@ -48,20 +56,20 @@ for key in keys(result.splitted)
         "test_ssh_workflow_happycase_2016-06-01_13:26:42_02",
         "hap2_testworkflow_2016-06-01_13:36:06_05",
     ])
-    assert(length(result.splitted[key]) in [94,490,89,40,37,55,86,])
+    assert(length(result.splitted[key].content) in [94,490,89,40,37,55,86,])
 end
 assert(length(result.prefix) == 725)
-assert(length(result.suffix) == 18)
+assert(length(result.suffix) == 19)
 
 # test with a big log file
 text = readlines("data/logs/2018-01-31_13-15-07_70734.log")
 result = Log.split_overlapping(text, regex_workflow)
 for key in keys(result.splitted)
     assert(key in ["MDO_CO_Sellar_2018-01-31_12:51:00_01"])
-    assert(length(result.splitted[key]) in [69924])
+    assert(length(result.splitted[key].content) in [69924])
 end
 assert(length(result.prefix) == 754)
-assert(length(result.suffix) == 55)
+assert(length(result.suffix) == 56)
 
 text = readlines("data/logs/2018-03-01_15-11-18_51750.log")
 result = Log.split_overlapping(text, regex_workflow)
@@ -225,7 +233,7 @@ for key in keys(result.splitted)
         "TestFsmsLoop1_2016-01-28_13:09:41_09",
     ])
 
-    assert(length(result.splitted[key]) in [
+    assert(length(result.splitted[key].content) in [
         123,39,82,106,344,69,236,129,18209,1332,115,181,83,50,39,67,50,
         137,118,66,39,54,115,55,67,141,130,61,362,624,68,68,67,51,531,
         67,81,129,72,67,115,67,38,54,344,257,52,68,129,130,105,55,39,41,

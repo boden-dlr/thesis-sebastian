@@ -1,8 +1,15 @@
 module Log
 
 using NamedTuples
+using AutoHashEquals
 
 export split_overlapping
+
+@auto_hash_equals struct Occurence
+    from::Int64
+    to::Int64
+    content::Array{String}
+end
 
 function split_overlapping(text::Array{String}, selector::Regex)
     
@@ -21,7 +28,7 @@ function split_overlapping(text::Array{String}, selector::Regex)
         end
     end
 
-    splitted = Dict{String,Array{String}}()
+    splitted = Dict{String,Occurence}()
 
     first_all = length(text)
     last_all = 0
@@ -29,7 +36,11 @@ function split_overlapping(text::Array{String}, selector::Regex)
         entries = inverted_index[key]
         first::Int64 = entries[1][1]
         last::Int64 = entries[end][1]
-        splitted[key] = text[first:last]
+        splitted[key] = Occurence(
+            first,
+            last,
+            text[first:last]
+        )
 
         if first < first_all
             first_all = first
@@ -40,11 +51,11 @@ function split_overlapping(text::Array{String}, selector::Regex)
         end
     end
 
-    prefix = text[2:first_all]
-    suffix = text[last_all+2:end]
-    if length(prefix) > 0 && length(suffix) > 0 && prefix == suffix
-        prefix = append!([text[1]], prefix)
-        suffix = append!([text[1]], suffix)
+    prefix = text[1:first_all-1]
+    suffix = text[last_all+1:end]
+    # length(prefix) > 0 && length(suffix) > 0 && 
+    if prefix == suffix[1:end-1]
+        prefix = push!(prefix, text[end])
     end
 
     @NT(prefix=prefix, splitted=splitted, suffix=suffix)
