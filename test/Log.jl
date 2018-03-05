@@ -12,7 +12,7 @@ text = [
 ]
 
 result = Log.split_overlapping(text, r"this text will never be found")
-assert(result.prefix == result.suffix)
+assert(result.prefix.content == result.suffix.content)
 assert(result.prefix.content == text)
 assert(result.prefix.content == text)
 assert(length(result.prefix.content) == 6)
@@ -41,6 +41,9 @@ expected = Dict(
     "b" => Log.Occurence(5,7,text[5:7]),
     "c" => Log.Occurence(8,9,text[8:9]),
 )
-assert(result.splitted == expected)
+
+assert(all(result.splitted[key].content == expected[key].content for key in keys(expected)))
+assert(all(result.splitted[key].from == expected[key].from for key in keys(expected)))
+assert(all(result.splitted[key].to == expected[key].to for key in keys(expected)))
 assert(result.prefix.content == ["prefix","prefix","prefix"])
 assert(result.suffix.content == ["suffix","suffix","suffix","suffix"])
