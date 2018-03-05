@@ -53,7 +53,6 @@ function split_overlapping(text::Array{String}, selector::Regex)
 
     prefix = text[1:first_all-1]
     suffix = text[last_all+1:end]
-    # length(prefix) > 0 && length(suffix) > 0 && 
     if prefix == suffix[1:end-1]
         prefix = push!(prefix, text[end])
     end

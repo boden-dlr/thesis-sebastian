@@ -12,6 +12,8 @@ text = [
 
 result = Log.split_overlapping(text, r"this text will never be found")
 assert(result.prefix == result.suffix)
+assert(result.prefix == text)
+assert(result.prefix == text)
 assert(length(result.prefix) == 6)
 assert(length(result.suffix) == 6)
 
