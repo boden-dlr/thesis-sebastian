@@ -1,9 +1,11 @@
 module Log
 
+using LogClustering.Index
 using NamedTuples
 using AutoHashEquals
 
 export split_overlapping
+
 
 @auto_hash_equals struct Occurence
     from::Int64
@@ -11,22 +13,10 @@ export split_overlapping
     content::Array{String}
 end
 
+
 function split_overlapping(text::Array{String}, selector::Regex)
     
-    inverted_index = Dict{String,Vector{Tuple{Int64,Int64}}}()
-
-    for (i, line) in enumerate(text)
-        m = match(selector, line)
-        if typeof(m) != Void
-            key = m.captures[1]
-            if haskey(inverted_index, key)
-                push!(inverted_index[key], (i, m.offset))
-            else
-                inverted_index[key] = Vector{Tuple{Int64,Int64}}()
-                push!(inverted_index[key], (i, m.offset))
-            end
-        end
-    end
+    inverted_index = Index.invert(text, selector)
 
     splitted = Dict{String,Occurence}()
 
@@ -36,11 +26,7 @@ function split_overlapping(text::Array{String}, selector::Regex)
         entries = inverted_index[key]
         first::Int64 = entries[1][1]
         last::Int64 = entries[end][1]
-        splitted[key] = Occurence(
-            first,
-            last,
-            text[first:last]
-        )
+        splitted[key] = Occurence(first, last, text[first:last])
 
         if first < first_all
             first_all = first
