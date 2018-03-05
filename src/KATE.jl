@@ -5,6 +5,7 @@ using Flux: onehot, argmax, chunk, batchseq, throttle, crossentropy, sigmoid, tr
 using Flux.Tracker: data
 using StatsBase: wsample
 using Base.Iterators: partition
+using DataStructures
 
 struct KCompetetive{F,S,T}
   σ::F
@@ -13,8 +14,9 @@ struct KCompetetive{F,S,T}
   α::Float64 # boost
 end
 
-function KCompetetive(in::Integer, k::Integer, σ = tanh, α::Float64 = 6.26;
-               initW = glorot_uniform, initb = zeros)
+function KCompetetive(in::Integer, k::Integer, σ = tanh;
+    α::Float64 = 6.26,
+    initW = glorot_uniform, initb = zeros)
   if k > in
     throw(warn("Warning: k (out) should not be larger than dim: $in, found: $k, using $in"))
     k = in
@@ -25,105 +27,96 @@ end
 treelike(KCompetetive)
 
 function (a::KCompetetive)(x)
-  W, b, σ, α = a.W, a.b, a.σ, a.α
+    W, b, σ, α = a.W, a.b, a.σ, a.α
 
-  ps = Vector{Tuple{Int64,Float64}}()
-  ns = Vector{Tuple{Int64,Float64}}()
+    # TODO: detect if this is training or prediction.
+    # Only apply K-Competetion in the training phase.
 
-  for (i, activation) = enumerate(data(x))
-    if activation >= 0
-        push!(ps, (i, activation))
-    else
-        push!(ns, (i, activation))
+    ps = Vector{Tuple{Int64,Float64}}()
+    ns = Vector{Tuple{Int64,Float64}}()
+
+    for (i, activation) = enumerate(data(x))
+        if activation >= 0
+            push!(ps, (i, activation))
+        else
+            push!(ns, (i, activation))
+        end
     end
-  end
-  ps = sort(ps, by=last)
-  ns = sort(ns, by=last, rev=true)
-  P = length(ps)
-  N = length(ns)
-  k = first(size(a.W))
+    ps = sort(ps, by=last)
+    ns = sort(ns, by=last, rev=true)
+    P = length(ps)
+    N = length(ns)
+    k = first(size(a.W))
 
-  z = data(x)
-  
-  p = P-Int(k/2)
-  if p > 0
-    Epos = sum(map(last, ps[1:p]))
-    # @show Epos
-    for i = p+1:P
-        # positive winners
-        z[first(ps[i])] += α * Epos
+    z = data(x)
+
+    p = P-Int(round(k/2))
+    if p > 0
+        Epos = sum(map(last, ps[1:p]))
+        # @show Epos
+        for i = p+1:P
+            # positive winners
+            z[first(ps[i])] += α * Epos
+        end
+        for i = 1:p
+            # positive losers
+            z[first(ps[i])] = 0.0
+        end
     end
-    for i = 1:p 
-        # positive losers
-        z[first(ps[i])] = 0.0
-    end    
-  end
 
-  n = N-Int(k/2)
-  if n > 0
-    Eneg = sum(map(last, ns[1:n]))
-    # @show Eneg
-    for i = n+1:N
-        # negative winners
-        z[first(ns[i])] += α * Eneg
+    n = N-Int(round(k/2))
+    if n > 0
+        Eneg = sum(map(last, ns[1:n]))
+        # @show Eneg
+        for i = n+1:N
+            # negative winners
+            z[first(ns[i])] += α * Eneg
+        end
+        for i = 1:n
+            # negative losers
+            z[first(ns[i])] = 0.0
+        end
     end
-    for i = 1:n
-        # negative losers
-        z[first(ns[i])] = 0.0
-    end    
-  end
-
-  #  result = σ.(W*x .+ b)
-  #  @show result
-  #  result
-  σ.(W*x .+ b)
+    #  result = σ.(W*x .+ b)
+    #  @show result
+    #  result
+    σ.(W*x .+ b)
 end
 
 function Base.show(io::IO, l::KCompetetive)
   print(io, "KCompetetive(", size(l.W, 2), ", ", size(l.W, 1))
   l.σ == identity || print(io, ", ", l.σ)
+  print(io, ", ", l.α)
   print(io, ")")
 end
 
-function non_empty_string(s)
-    s != ""
-end
 
-function count_words(text::Array{String})
-    unique_words = unique(text)
-    word_counts = Dict{String,Int64}(map(word -> (word, 0), unique_words))
-    map(word -> word_counts[word] += 1, text)
-    word_counts
-end
-
-function nl(word::String, wc::Dict{String,Int64}, V::Int)
+function log_by_frequency(word::String, wc::DataStructures.OrderedDict{String,Int64}, V::Int)
     n = wc[word]
     logwc = log(1+n)
     logwc/V*logwc
 end
 
-function normalize_log(text::Array{String}, word_counts::Dict{String,Int64})
-    V = length(word_counts)
-    map(word -> nl(word,word_counts,V), text)
+# ::Array{String}
+function normalize(tokens::Array{Array{String,1},1}, word_count::DataStructures.OrderedDict{String,Int64})
+    V = length(word_count)
+    numeric = map(
+        line -> map(
+            word -> log_by_frequency(word, word_count, V), line),
+        tokens)
+    N = maximum(map(line -> length(line), numeric))
+    padded = map(line -> rpad(line, N, 0.0), numeric)
+    padded
 end
 
-function transform_text_to_input(src::String, limit::Int=1000)
-    text_raw = readstring(src)
-    text = map(s -> String(s), 
-        filter(non_empty_string, split(text_raw, r"[^\wäÄöÖüÜ&]+")))
-    text = text[1:limit]
-    word_counts = count_words(text)
-    input = normalize_log(text, word_counts)
-    return input, word_counts
-end
-
+# TODO: implement
 function get_similar_words(model, query_id, vocab; topn=10)
     # @show vocab
     W = model[1].W.data
     W = W/norm(W)
     query = W[query_id]
     # @show query
-    score = query*(W')
+    score = query*(transpose(W))
     # @show score
     # @show size(score), typeof(score)
     # @show score[:,1]
