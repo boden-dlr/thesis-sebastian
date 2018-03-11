@@ -13,6 +13,7 @@
 *.model
 *.ods
 *.jdl
+*.spmf
 
 *.png
 *.svg
