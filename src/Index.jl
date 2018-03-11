@@ -1,5 +1,11 @@
 module Index
 
+using DataStructures
+
+function key(kv::Pair)
+    kv[1]
+end
+
 function invert(text::Array{Array{String}}, tokens::Array{String})    
     
     inverted_index = Dict{String,Vector{Tuple{Int64,Int64}}}()
@@ -106,6 +112,52 @@ function invert(text::Array{Array{String}}, token::String)
     end
 
     inverted_index
+end
+
+function invert{N<:Number}(itr::Array{N})
+    d = Dict{N,Vector{Int64}}()
+    keys = unique(itr)
+    for key in keys
+        d[key] = Int64[]
+    end
+    for (i, val) in enumerate(itr)
+        push!(d[val], i)
+    end
+    d
+end
+
+function pairs{N<:Number}(sequence::Array{N,1};
+    unique = true, overlapping = false, gap = -1)
+
+    pairs = Dict{Tuple{N,N},Vector{Tuple{Int64,Int64}}}()
+
+    S = length(sequence)
+    for i in 1:S
+        for j in i+1:S
+            # assert(i<j)
+            if gap >= 0 && i+gap+1 < j
+                continue
+            end
+            a,b = sequence[i], sequence[j]
+            if unique && a == b
+                continue
+            end
+            pair = (a,b)
+            if haskey(pairs, pair)
+                if overlapping
+                    push!(pairs[pair],(i,j))
+                else
+                    if pairs[pair][end][2] < i
+                        push!(pairs[pair],(i,j))
+                    end
+                end
+            else
+                pairs[pair] = [(i,j)]
+            end
+        end
+    end
+
+    DataStructures.OrderedDict(sort(collect(pairs), by=key))
 end
 
 end # module Index
