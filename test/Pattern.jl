@@ -47,10 +47,7 @@ Pattern.grow_depth_first(
     sequence,
     vertical,
     alphabet,
-    vertical_pairs,
-    pairs,
-    db,
-    patterns;
+    db;
     min_sup = min_sup,
     unique = unique,
     overlapping = overlapping,

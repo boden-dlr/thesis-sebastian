@@ -67,17 +67,14 @@ function grow_depth_first{N<:Number}(
     sequence::Vector{N},
     vertical::Dict{N,Vector{N}},
     alphabet::Vector{N},
-    vertical_pairs::OrderedDict{Tuple{N,N},Vector{Tuple{Int64,Int64}}},
-    pairs::Vector{Tuple{N,N}},
-    db::OrderedDict{Vector{N},Vector{Vector{N}}},
-    patterns::Vector{Vector{N}};
-    min_sup     = 1,
-    unique      = false,
+    db::OrderedDict{Vector{N},Vector{Vector{N}}};
+    min_sup     = 1, # TODO
+    unique      = false, # TODO
     overlapping = false,
     gap         = -1)
 
-    A = length(alphabet)
-    P = length(patterns)
+    # A = length(alphabet)
+    # P = length(patterns)
 
     # shared_db = SharedVector{Tuple{Vector{N},Tuple{Int64,Vector{Tuple{Int64,Int64}},Vector{Vector{N}}}}}(P*A)
 
@@ -133,10 +130,11 @@ function grow_depth_first{N<:Number}(
                     end
                 end
             end
+            # TODO: put depth first here...
         end
         # TODO: remove occs from found pattern
         for n in foundat
-            @show "found at: ", n
+            # @show "found at: ", n
             # deleteat!(db[pattern],n)
             # delete!(db, pattern)
         end
