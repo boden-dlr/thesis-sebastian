@@ -63,11 +63,12 @@ function grow{N<:Number}(sequence::Array{N,1}, vertical, primer, min_sup; overla
 end
 
 
-function grow_depth_first{N<:Number}(
+function grow_depth_first!{N<:Number}(
+    db::OrderedDict{Vector{N},Vector{Vector{N}}},
+    extend::Vector{Vector{N}},
     sequence::Vector{N},
     vertical::Dict{N,Vector{N}},
-    alphabet::Vector{N},
-    db::OrderedDict{Vector{N},Vector{Vector{N}}};
+    alphabet::Vector{N};
     min_sup     = 1, # TODO
     unique      = false, # TODO
     overlapping = false,

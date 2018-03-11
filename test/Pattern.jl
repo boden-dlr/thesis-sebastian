@@ -22,8 +22,11 @@ unique      = false
 overlapping = false
 gap         = 0
 N = Int64
+# sequence = rand(1:100, 5000)
 sequence = data
+# TODO:NOTE: JULIA BUG in OrderedDict!
 # vertical = OrderedDict(sort(Index.invert(sequence)))
+
 vertical = Index.invert(sequence)
 alphabet = collect(keys(vertical))
 vertical_pairs = Index.pairs(sequence, gap=gap)
@@ -43,11 +46,12 @@ end
 db
 patterns = collect(keys(db))
 
-@time Pattern.grow_depth_first(
+@time Pattern.grow_depth_first!(
+    db,
+    patterns,
     sequence,
     vertical,
-    alphabet,
-    db;
+    alphabet;
     min_sup = min_sup,
     unique = unique,
     overlapping = overlapping,
