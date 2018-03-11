@@ -79,19 +79,10 @@ function grow_depth_first{N<:Number}(
     # shared_db = SharedVector{Tuple{Vector{N},Tuple{Int64,Vector{Tuple{Int64,Int64}},Vector{Vector{N}}}}}(P*A)
 
     for pattern in keys(db) # patterns
-        # if !haskey(db, pattern)
-        #     continue
-        # end
         foundat = Vector{Int64}()
         S = length(db[pattern]) #[1]
         for s_ext in alphabet
-            # if !haskey(db, pattern)
-            #     continue
-            # end
             for n in 1:S-1
-                # if !haskey(db, pattern)
-                #     continue
-                # end
                 start = db[pattern][n][end]+1
                 stop = db[pattern][n+1][1]-1
                 for candidate in vertical[s_ext]
