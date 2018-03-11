@@ -79,10 +79,10 @@ function grow_depth_first{N<:Number}(
     # shared_db = SharedVector{Tuple{Vector{N},Tuple{Int64,Vector{Tuple{Int64,Int64}},Vector{Vector{N}}}}}(P*A)
 
     for pattern in keys(db) # patterns
+        support = length(db[pattern])
         foundat = Vector{Int64}()
-        S = length(db[pattern]) #[1]
         for s_ext in alphabet
-            for n in 1:S-1
+            for n in 1:support-1
                 start = db[pattern][n][end]+1
                 stop = db[pattern][n+1][1]-1
                 for candidate in vertical[s_ext]
@@ -100,22 +100,17 @@ function grow_depth_first{N<:Number}(
                             # @show extended, occurence
                             if haskey(db, extended)
                                 if overlapping
-                                    # db[extended][1] += 1
                                     push!(db[extended], occurence)
-                                    # delete!(db, pattern)
                                     push!(foundat, n)
                                 else
                                     if db[extended][end][end] < candidate
-                                        # db[extended][1] += 1
                                         push!(db[extended], occurence)
-                                        # delete!(db, pattern)
                                         push!(foundat, n)
                                     end
                                 end
                             else
                                 db[extended] = [occurence]
                                 push!(foundat, n)
-                                # delete!(db, pattern)
                             end
                         end
                     end
