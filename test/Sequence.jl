@@ -1,3 +1,5 @@
+using Base.Test
+using LogClustering.Sequence: rows, cols, flatmap
 using LogClustering.Sequence: ngram
 
 text = "Some books are to be tasted, others to be swallowed, and some few to be chewed and digested."
@@ -46,3 +48,18 @@ assert(result == String[
 splitted = split(text)
 @show splitted
 @show ngram(splitted)
+
+# ----------------------------------------------------------------------
+
+
+
+# ----------------------------------------------------------------------
+
+data = collect(rows(rand(1:200, 5, 10)))
+prefixspan_format = Sequence.convert_to_prefixspan(data)
+
+# ----------------------------------------------------------------------
+
+A = rand(1:200, 100)
+using LogClustering.Index
+Index.invert()
