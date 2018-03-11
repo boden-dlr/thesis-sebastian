@@ -2,7 +2,7 @@ module Pattern
 
 using LogClustering.Index
 using LogClustering.Index: key
-using DataStructures
+using DataStructures: OrderedDict
 
 #TODO Tuple/Array => (support, range, occs)
 # change dict in place!
@@ -60,6 +60,90 @@ function grow{N<:Number}(sequence::Array{N,1}, vertical, primer, min_sup; overla
     end
     
     extended
+end
+
+
+function grow_depth_first{N<:Number}(
+    sequence::Vector{N},
+    vertical::Dict{N,Vector{N}},
+    alphabet::Vector{N},
+    vertical_pairs::OrderedDict{Tuple{N,N},Vector{Tuple{Int64,Int64}}},
+    pairs::Vector{Tuple{N,N}},
+    db::OrderedDict{Vector{N},Vector{Vector{N}}},
+    patterns::Vector{Vector{N}};
+    min_sup     = 1,
+    unique      = false,
+    overlapping = false,
+    gap         = -1)
+
+    A = length(alphabet)
+    P = length(patterns)
+
+    # shared_db = SharedVector{Tuple{Vector{N},Tuple{Int64,Vector{Tuple{Int64,Int64}},Vector{Vector{N}}}}}(P*A)
+
+    for pattern in keys(db) # patterns
+        # if !haskey(db, pattern)
+        #     continue
+        # end
+        foundat = Vector{Int64}()
+        S = length(db[pattern]) #[1]
+        for s_ext in alphabet
+            # if !haskey(db, pattern)
+            #     continue
+            # end
+            for n in 1:S-1
+                # if !haskey(db, pattern)
+                #     continue
+                # end
+                start = db[pattern][n][end]+1
+                stop = db[pattern][n+1][1]-1
+                for candidate in vertical[s_ext]
+                    if candidate >= start && candidate <= stop 
+                        add = false
+                        if gap == -1
+                            add = true
+                        elseif gap >= 0 && candidate <= start+gap
+                            add = true
+                        end
+                        if add
+                            extended = vcat(pattern, s_ext)
+                            occurence = vcat(db[pattern][n], candidate)
+                            # @show pattern, s_ext, candidate, start, stop
+                            # @show extended, occurence
+                            if haskey(db, extended)
+                                if overlapping
+                                    # db[extended][1] += 1
+                                    push!(db[extended], occurence)
+                                    # delete!(db, pattern)
+                                    push!(foundat, n)
+                                else
+                                    if db[extended][end][end] < candidate
+                                        # db[extended][1] += 1
+                                        push!(db[extended], occurence)
+                                        # delete!(db, pattern)
+                                        push!(foundat, n)
+                                    end
+                                end
+                            else
+                                db[extended] = [occurence]
+                                push!(foundat, n)
+                                # delete!(db, pattern)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        # TODO: remove occs from found pattern
+        for n in foundat
+            @show "found at: ", n
+            # deleteat!(db[pattern],n)
+            # delete!(db, pattern)
+        end
+        # TODO: remove patterns with support < min_sup
+    end
+
+    db
 end
 
 
