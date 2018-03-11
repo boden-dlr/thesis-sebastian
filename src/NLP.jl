@@ -55,8 +55,9 @@ function tokenize(lines::Array{String};
             nonempty,
             map(sub ->
                 convert(String,sub),
-                split(line, splitby))),
-        lines_preprocessed)
+                split(line, splitby))
+            ),
+            lines_preprocessed)
     # for i = 1:10
     #     @show lines_splitted[i]
     # end
