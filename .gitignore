@@ -14,6 +14,7 @@
 *.ods
 *.jdl
 *.spmf
+*.prefixspan
 
 *.png
 *.svg
