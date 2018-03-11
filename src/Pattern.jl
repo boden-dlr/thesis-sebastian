@@ -65,7 +65,7 @@ end
 
 function grow_depth_first!{N<:Number}(
     db::OrderedDict{Vector{N},Vector{Vector{N}}},
-    extend::Vector{Vector{N}}, # TODO: extend statically and not by `keys(db)`
+    extend::Vector{Vector{N}},
     sequence::Vector{N},
     vertical::Dict{N,Vector{N}},
     alphabet::Vector{N};
@@ -96,7 +96,6 @@ function grow_depth_first!{N<:Number}(
                             add = true
                         end
                         if add
-                            
                             occurence = vcat(db[pattern][n], candidate)
                             # @show pattern, s_ext, candidate, start, stop
                             # @show s_extension, occurence
