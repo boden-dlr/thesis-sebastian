@@ -43,7 +43,7 @@ end
 db
 patterns = collect(keys(db))
 
-Pattern.grow_depth_first(
+@time Pattern.grow_depth_first(
     sequence,
     vertical,
     alphabet,
