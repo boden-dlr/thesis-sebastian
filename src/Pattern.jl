@@ -65,7 +65,7 @@ end
 
 function grow_depth_first!{N<:Number}(
     db::OrderedDict{Vector{N},Vector{Vector{N}}},
-    extend::Vector{Vector{N}},
+    extend::Vector{Vector{N}}, # TODO: extend statically and not by `keys(db)`
     sequence::Vector{N},
     vertical::Dict{N,Vector{N}},
     alphabet::Vector{N};
@@ -79,10 +79,11 @@ function grow_depth_first!{N<:Number}(
 
     # shared_db = SharedVector{Tuple{Vector{N},Tuple{Int64,Vector{Tuple{Int64,Int64}},Vector{Vector{N}}}}}(P*A)
 
-    for pattern in keys(db) # patterns
+    for pattern in extend # patterns
         support = length(db[pattern])
-        foundat = Vector{Int64}()
         for s_ext in alphabet
+            foundat = Vector{Int64}()
+            s_extension = vcat(pattern, s_ext)
             for n in 1:support-1
                 start = db[pattern][n][end]+1
                 stop = db[pattern][n+1][1]-1
@@ -95,37 +96,46 @@ function grow_depth_first!{N<:Number}(
                             add = true
                         end
                         if add
-                            extended = vcat(pattern, s_ext)
+                            
                             occurence = vcat(db[pattern][n], candidate)
                             # @show pattern, s_ext, candidate, start, stop
-                            # @show extended, occurence
-                            if haskey(db, extended)
+                            # @show s_extension, occurence
+                            if haskey(db, s_extension)
                                 if overlapping
-                                    push!(db[extended], occurence)
+                                    push!(db[s_extension], occurence)
                                     push!(foundat, n)
                                 else
-                                    if db[extended][end][end] < candidate
-                                        push!(db[extended], occurence)
+                                    if db[s_extension][end][end] < candidate
+                                        push!(db[s_extension], occurence)
                                         push!(foundat, n)
                                     end
                                 end
                             else
-                                db[extended] = [occurence]
+                                db[s_extension] = [occurence]
                                 push!(foundat, n)
                             end
                         end
                     end
                 end
             end
-            # TODO: put depth first here...
+            # TODO: remove occs from found pattern
+            for n in foundat
+                # @show "found at: ", n
+                # deleteat!(db[pattern],n)
+                # delete!(db, pattern)
+            end
+            # TODO: remove patterns with support < min_sup
+
+            if length(foundat) > 0
+                grow_depth_first!(
+                    db, [s_extension],
+                    sequence, vertical, alphabet;
+                    min_sup = min_sup,
+                    unique = unique,
+                    overlapping = overlapping,
+                    gap = gap)
+            end
         end
-        # TODO: remove occs from found pattern
-        for n in foundat
-            # @show "found at: ", n
-            # deleteat!(db[pattern],n)
-            # delete!(db, pattern)
-        end
-        # TODO: remove patterns with support < min_sup
     end
 
     db

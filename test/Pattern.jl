@@ -28,7 +28,7 @@ sequence = data
 # vertical = OrderedDict(sort(Index.invert(sequence)))
 
 vertical = Index.invert(sequence)
-alphabet = collect(keys(vertical))
+alphabet = sort(collect(keys(vertical)))
 vertical_pairs = Index.pairs(sequence, gap=gap)
 pairs = collect(keys(vertical_pairs))
 db = OrderedDict{Vector{N},Vector{Vector{N}}}()
