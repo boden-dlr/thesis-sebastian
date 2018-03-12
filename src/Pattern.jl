@@ -70,7 +70,7 @@ function grow_depth_first!{N<:Number}(
     vertical::Dict{N,Vector{N}},
     alphabet::Vector{N};
     min_sup     = 1, # TODO
-    unique      = false, # TODO
+    unique      = false,
     overlapping = false,
     gap         = -1)
 
@@ -82,6 +82,9 @@ function grow_depth_first!{N<:Number}(
     for pattern in extend # patterns
         support = length(db[pattern])
         for s_ext in alphabet
+            if unique && s_ext in pattern
+                continue
+            end
             foundat = Vector{Int64}()
             s_extension = vcat(pattern, s_ext)
             for n in 1:support-1
