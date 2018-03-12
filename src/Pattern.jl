@@ -69,10 +69,11 @@ function grow_depth_first!{N<:Number}(
     sequence::Vector{N},
     vertical::Dict{N,Vector{N}},
     alphabet::Vector{N};
-    min_sup     = 1, # TODO
+    min_sup     = 1,
     unique      = false,
     overlapping = false,
     gap         = -1)
+    # TODO: periodicity: min_periodicity:max_periodicity
 
     # A = length(alphabet)
     # P = length(patterns)
@@ -81,6 +82,10 @@ function grow_depth_first!{N<:Number}(
 
     for pattern in extend # patterns
         support = length(db[pattern])
+        if support < min_sup
+            delete!(db, pattern)
+            continue
+        end
         for s_ext in alphabet
             if unique && s_ext in pattern
                 continue
@@ -88,9 +93,13 @@ function grow_depth_first!{N<:Number}(
             foundat = Vector{Int64}()
             s_extension = vcat(pattern, s_ext)
             for n in 1:support-1
-                start = db[pattern][n][end]+1
-                stop = db[pattern][n+1][1]-1
+                # @show s_extension, pattern, db[pattern]
+                start = db[pattern][n][end] + 1
+                stop  = db[pattern][n+1][1] - 1
                 for candidate in vertical[s_ext]
+                    if candidate > stop
+                        break
+                    end
                     if candidate >= start && candidate <= stop 
                         add = false
                         if gap == -1
@@ -120,13 +129,15 @@ function grow_depth_first!{N<:Number}(
                     end
                 end
             end
-            # TODO: remove occs from found pattern
-            for n in foundat
-                # @show "found at: ", n
-                # deleteat!(db[pattern],n)
-                # delete!(db, pattern)
-            end
-            # TODO: remove patterns with support < min_sup
+
+            # TODO: remove found occs from db[pattern]?
+            # d = 0
+            # for i in foundat
+            #     @show s_extension, foundat, db[pattern]
+            #     deleteat!(db[pattern],i-d)
+            #     d += 1
+            # end
+            # support = length(db[pattern])
 
             if length(foundat) > 0
                 grow_depth_first!(
@@ -138,6 +149,8 @@ function grow_depth_first!{N<:Number}(
                     gap = gap)
             end
         end
+        # TODO: remove patterns with support < min_sup
+        
     end
 
     db
