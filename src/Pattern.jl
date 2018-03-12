@@ -130,7 +130,8 @@ function grow_depth_first!{N<:Number}(
                 end
             end
 
-            # TODO: remove found occs from db[pattern]?
+            # TODO: closed vs. maximal patterns
+            #       remove found occs from db[pattern]?
             # d = 0
             # for i in foundat
             #     @show s_extension, foundat, db[pattern]
@@ -139,7 +140,7 @@ function grow_depth_first!{N<:Number}(
             # end
             # support = length(db[pattern])
 
-            if length(foundat) > 0
+            if length(foundat) >= min_sup
                 grow_depth_first!(
                     db, [s_extension],
                     sequence, vertical, alphabet;
@@ -147,9 +148,10 @@ function grow_depth_first!{N<:Number}(
                     unique = unique,
                     overlapping = overlapping,
                     gap = gap)
+            else
+                delete!(db, s_extension)
             end
         end
-        # TODO: remove patterns with support < min_sup
         
     end
 
