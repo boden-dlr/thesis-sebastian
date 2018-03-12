@@ -50,24 +50,26 @@ julia> flatmap(e->e.^2, A)
 """
 function flatmap(f::Function, A::Array)
 
-    mapped = map(f, A)
+    # mapped = map(f, A)
     
-    ts = eltype(mapped).parameters
-    t = eltype(eltype(mapped))
-    M = length(mapped)
-    T = length(ts)
+    # ts = eltype(mapped).parameters
+    # t = eltype(eltype(mapped))
+    # M = length(mapped)
+    # T = length(ts)
 
-    flattened = Array{t}(M*T)
+    # flattened = Array{t}(M*T)
 
-    k = 1
-    for (i,l) in enumerate(mapped)
-        for (j,elem) in enumerate(l)
-            flattened[k] = elem
-            k += 1
-        end
-    end
+    # k = 1
+    # for (i,l) in enumerate(mapped)
+    #     for (j,elem) in enumerate(l)
+    #         flattened[k] = elem
+    #         k += 1
+    #     end
+    # end
 
-    flattened
+    # flattened
+    
+    vcat(map(f, A)...)
 end
 
 """
