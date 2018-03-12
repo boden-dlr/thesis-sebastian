@@ -15,11 +15,13 @@ P = size(points)[2]
 k = 300
 clustered = kmeans(points,k)
 
+writecsv(string(path, name, "_clustered_", "kmeans_", P, "P_", k, "k", ".csv"), clustered.assignments)
+
 p = scatter3d(
     points[1,:], points[2,:], points[3,:],
     label = "data (colored by cluster ID)",
     marker_z = clustered.assignments)
-savefig(p, string(path, name, "_clustered_", "kmeans_", P, "P", k, "k", ".png"))
+savefig(p, string(path, name, "_clustered_", "kmeans_", P, "P_", k, "k", ".png"))
 
 x,y,z = Vector{Float64}(), Vector{Float64}(), Vector{Float64}()
 weights = Vector{Float64}()
