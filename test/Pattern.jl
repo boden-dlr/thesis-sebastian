@@ -18,12 +18,16 @@ data = Int64[1,2,3,5,4,5,6,1,2,3,7,6,5,4,1,2]
 # ----------------------------------------------------------------------
 
 min_sup     = 1
-unique      = false
+unique      = true
 overlapping = false
 gap         = 0
 N = Int64
+
+# sequence = data
 # sequence = rand(1:100, 5000)
-sequence = data
+data = readcsv("data/kate/51750S_6154V_148N_3K_15E_1234seed_embedded_KATE_clustered_kmeans_51750P_300k.csv")
+sequence = map(n->convert(Int64,n), data[:,1])
+
 # TODO:NOTE: JULIA BUG in OrderedDict!
 # vertical = OrderedDict(sort(Index.invert(sequence)))
 
@@ -57,3 +61,5 @@ patterns = collect(keys(db))
     overlapping = overlapping,
     gap = gap
 )
+
+sort(collect(keys(db)), rev=true)
