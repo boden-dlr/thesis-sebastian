@@ -7,9 +7,9 @@ using Flux
 using Flux: throttle, crossentropy #, binarycrossentropy
 using Juno: @progress
 using Plots
-# gr()
-using Rsvg
-plotlyjs()
+gr()
+# using Rsvg
+# plotlyjs()
 
 function take(path::String, n::Int64 = 1)
     all_logs = Vector{String}()
@@ -33,11 +33,11 @@ const cwd = string(basedir, "/data/kate/")
 # )...)
     # readlines(string(base, "/data/logs/", "2014-12-02_10-45-57_922.log")),
     # readlines(string(base, "/data/logs/", "2016-06-08_17-12-52_6852.log")),
-lines = readlines(string(basedir, "/data/logs/", "2018-03-01_15-11-18_51750.log"))
-    # readlines("/home/sebastian/data/log/brigitte_2018-01-25_small.log"),
-    # readlines("/home/sebastian/data/log/brigitte_2018-02-01_big.log"),
-    # readlines("/home/sebastian/data/log/syslog"),
-    # readlines("/home/sebastian/data/log/syslog.2018-02-23_17:07.log"),
+# lines = readlines(string(basedir, "/data/logs/", "2014-12-02_08-58-09_1048.log"))
+# lines = readlines(string(basedir, "/data/logs/", "2018-03-01_12-58-22_32800.log"))
+# lines = readlines(string(basedir, "/data/logs/", "2018-03-01_15-11-18_51750.log"))
+# lines = readlines(string(basedir, "/data/logs/", "2017-11-28_08-08-42_129250.log"))
+lines = readlines(string(basedir, "/data/logs/", "2017-12-01_09-02-55_9081.log"))
 
 replacements = [
     # RCE datetime format
@@ -59,23 +59,29 @@ vocabulary = collect(keys(wordcount))
 sort(collect(wordcount), by=kv->kv[2], rev=true)
 input = KATE.normalize(tokenized, wordcount)
 
-Xs, Ys = input[1:end-1], input[2:end]
+Xs, Ys = deepcopy(input[1:end-1]), deepcopy(input[2:end])
+# Xs, Ys = input[1:end-1], input[2:end]
 # Xs, Ys = input, input
 @show typeof(Xs), typeof(Ys)
 @show length(Xs), length(Ys), length(Xs[1]), length(Ys[1])
 # @show Xs, Ys
+# input[236:255,1]
+# input[400:510,1]
+# @show input
 
 # make model reproduceable
-seed = 1234
+seed = 1235
+# seed = rand(1:10000)
 srand(seed)
 S = length(input)
 V = length(vocabulary)
 N = convert(Int64, length(input[1]))
 K = 3 #min(64, convert(Int64, round(N/10)))
-Epochs = 15
+Epochs = 5
+# truncate = false
 @show length(lines), S, V, N, K, Epochs, seed
 
-prefix = string(cwd, S, "S_", V, "V_", N, "N_", K, "K_", Epochs, "E_", seed, "seed")
+prefix = string(cwd, S, "S_", V, "V_", N, "N_", K, "K_", seed, "seed_", Epochs, "E") #_", truncate, "truncate")
 
 writecsv("$prefix\_tokenized.csv", tokenized)
 writecsv("$prefix\_wordcount.csv", wordcount)
@@ -88,8 +94,10 @@ function loss(xs, ys)
     # @show typeof(xs), typeof(ys)
     l = crossentropy(m(xs), ys)
     # @show typeof(l), l
-    # Flux.truncate!(m)
-    Flux.reset!(m)
+    # if truncate
+    #     # Flux.truncate!(m)
+    #     # Flux.reset!(m)
+    # end
     return l
 end
 
@@ -124,13 +132,13 @@ minIdx = 1
 cluster = Matrix{Float64}(S,K)
 
 for s = 1:S
-    encoded = m[1](input[s]).data
+    embedded = m[1](input[s]).data
     if s < 10
-        @show encoded
+        @show embedded
     end
-    cluster[s,:] = encoded
-    summed = sum(map(e->e^2,encoded))
-    # summed = sum(encoded)
+    cluster[s,:] = embedded
+    summed = sum(map(e->e^2,embedded))
+    # summed = sum(embedded)
     if summed > maxVal
         maxVal = summed
         maxIdx = s
@@ -155,8 +163,8 @@ writecsv("$prefix\_embedded_KATE.csv", cluster)
 plot_results = true
 
 if plot_results
-
-    savefig(plot(training), "$prefix\_loss.png")
+    
+    # savefig(plot(training), "$prefix\_loss.png")
 
     if K == 2
         d2 = scatter(cluster[:,1],cluster[:,2], label=["embedded"])

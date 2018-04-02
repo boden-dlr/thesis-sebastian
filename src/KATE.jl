@@ -29,13 +29,15 @@ treelike(KCompetetive)
 function (a::KCompetetive)(x)
     W, b, σ, α = a.W, a.b, a.σ, a.α
 
+    z = σ.(W*x .+ b)
+
     # TODO: detect if this is training or prediction.
     # Only apply K-Competetion in the training phase.
 
     ps = Vector{Tuple{Int64,Float64}}()
     ns = Vector{Tuple{Int64,Float64}}()
 
-    for (i, activation) = enumerate(data(x))
+    for (i, activation) = enumerate(data(z))
         if activation >= 0
             push!(ps, (i, activation))
         else
@@ -48,7 +50,7 @@ function (a::KCompetetive)(x)
     N = length(ns)
     k = first(size(a.W))
 
-    z = data(x)
+    z_hat = data(z)
 
     p = P-Int(round(k/2))
     if p > 0
@@ -56,11 +58,12 @@ function (a::KCompetetive)(x)
         # @show Epos
         for i = p+1:P
             # positive winners
-            z[first(ps[i])] += α * Epos
+            # z_hat[first(ps[i])] += α * Epos
+            z_hat[first(ps[i])] = z_hat[first(ps[i])] + (α * Epos)
         end
         for i = 1:p
             # positive losers
-            z[first(ps[i])] = 0.0
+            z_hat[first(ps[i])] = 0.0
         end
     end
 
@@ -70,17 +73,18 @@ function (a::KCompetetive)(x)
         # @show Eneg
         for i = n+1:N
             # negative winners
-            z[first(ns[i])] += α * Eneg
+            # z_hat[first(ns[i])] += α * Eneg
+            z_hat[first(ns[i])] = z_hat[first(ns[i])] + (α * Eneg)
         end
         for i = 1:n
             # negative losers
-            z[first(ns[i])] = 0.0
+            z_hat[first(ns[i])] = 0.0
         end
     end
     #  result = σ.(W*x .+ b)
     #  @show result
     #  result
-    σ.(W*x .+ b)
+    z # conserves gradient fro back-prop
 end
 
 function Base.show(io::IO, l::KCompetetive)
