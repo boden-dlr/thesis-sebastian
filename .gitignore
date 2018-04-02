@@ -15,6 +15,7 @@
 *.jdl
 *.spmf
 *.prefixspan
+*.regex
 
 *.png
 *.svg
