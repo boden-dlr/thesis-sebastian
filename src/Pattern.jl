@@ -68,11 +68,13 @@ function grow_depth_first!{N<:Number}(
     extend::Vector{Vector{N}},
     sequence::Vector{N},
     vertical::Dict{N,Vector{N}},
-    alphabet::Vector{N};
+    alphabet::Vector{N}; # TODO: CMAP?
     min_sup     = 1,
     unique      = false,
     overlapping = false,
-    gap         = -1)
+    gap         = -1,
+    set         = :closed,
+    depth       = 0) # 'maximal' 'all'
     # TODO: periodicity: min_periodicity:max_periodicity
 
     # A = length(alphabet)
@@ -96,11 +98,11 @@ function grow_depth_first!{N<:Number}(
                 # @show s_extension, pattern, db[pattern]
                 start = db[pattern][n][end] + 1
                 stop  = db[pattern][n+1][1] - 1
-                for candidate in vertical[s_ext]
+                for candidate in vertical[s_ext] # TODO: this is linear, could be log(n)
                     if candidate > stop
                         break
                     end
-                    if candidate >= start && candidate <= stop 
+                    if candidate >= start && candidate <= stop
                         add = false
                         if gap == -1
                             add = true
@@ -125,20 +127,13 @@ function grow_depth_first!{N<:Number}(
                                 db[s_extension] = [occurence]
                                 push!(foundat, n)
                             end
+                            @show depth, s_extension, pattern, s_ext
+                            @show occurence, foundat, candidate, start, stop
+                            println()
                         end
                     end
                 end
             end
-
-            # TODO: closed vs. maximal patterns
-            #       remove found occs from db[pattern]?
-            # d = 0
-            # for i in foundat
-            #     @show s_extension, foundat, db[pattern]
-            #     deleteat!(db[pattern],i-d)
-            #     d += 1
-            # end
-            # support = length(db[pattern])
 
             if length(foundat) >= min_sup
                 grow_depth_first!(
@@ -147,12 +142,31 @@ function grow_depth_first!{N<:Number}(
                     min_sup = min_sup,
                     unique = unique,
                     overlapping = overlapping,
-                    gap = gap)
+                    gap = gap,
+                    depth = depth + 1)
+
+                # TODO: closed vs. maximal patterns
+                if set == :closed
+                    # remove found occs from db[pattern]
+                    d = 0
+                    for i in foundat
+                        # @show s_extension, db[s_extension], foundat, i-d, db[pattern]
+                        if i > d
+                            deleteat!(db[pattern],i-d)
+                            d += 1
+                        end
+                    end
+                    support = length(db[pattern])
+                end
             else
                 delete!(db, s_extension)
             end
         end
-        
+        support = length(db[pattern])
+        if support < min_sup
+            delete!(db, pattern)
+            # continue
+        end
     end
 
     db

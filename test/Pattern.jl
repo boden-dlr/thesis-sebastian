@@ -35,26 +35,34 @@ vertical = Index.invert(sequence)
 alphabet = sort(collect(keys(vertical)))
 vertical_pairs = Index.pairs(sequence, gap=gap)
 pairs = collect(keys(vertical_pairs))
+db = OrderedDict{Vector{N},Vector{Vector{N}}}()
 
 timing = Vector()
 for _ in 1:1
+    # db = OrderedDict{Vector{N},Vector{Vector{N}}}()
+    # for (key,rs) in collect(vertical_pairs)
+    #     S = length(rs)
+    #     if S < min_sup
+    #         delete!(vertical_pairs, key)
+    #     else        
+    #         k = [e for e in key]
+    #         v = [[p[1],p[2]] for p in rs]
+    #         # @show key, rs, S, k, v
+    #         db[k] = v
+    #     end
+    # end
+    # extend = collect(keys(db))
     db = OrderedDict{Vector{N},Vector{Vector{N}}}()
-    for (key,rs) in collect(vertical_pairs)
-        S = length(rs)
-        if S < min_sup
-            delete!(vertical_pairs, key)
-        else        
-            k = [e for e in key]
-            v = [[p[1],p[2]] for p in rs]
-            # @show key, rs, S, k, v
-            db[k] = v
-        end
+    for (key,vals) in collect(vertical)
+        # @show key, vals, typeof(vals)
+        db[[key]] = collect(map(v->[v], vals))
     end
-    patterns = collect(keys(db))
+    extend = reverse(collect(map(k->[k],keys(vertical))))
+    @show extend
 
     (_, t, bytes, gctime, memallocs) = @timed Pattern.grow_depth_first!(
         db,
-        patterns,
+        extend,
         sequence,
         vertical,
         alphabet;
@@ -69,7 +77,11 @@ end
 avg_time  = reduce((p,t)-> p+t[1], 0.0, timing) / length(timing)
 avg_bytes = reduce((p,t)-> p+t[2], 0.0, timing) / length(timing)
 
-db
+for (i,(k,v)) in enumerate(collect(db))
+    println(string(i, "\t", k, "\t\t", v))
+end
+length(keys(db))
+reduce((p,l)->p+length(l), 0, flatmap(identity, collect(values(db))))
 
-# collect(keys(db))
+filter(k->length(k)>3,collect(keys(db)))
 # sort(collect(keys(db)), rev=true)
