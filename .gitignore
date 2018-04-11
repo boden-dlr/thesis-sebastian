@@ -17,6 +17,10 @@
 *.prefixspan
 *.regex
 *.desq
+*.huem
+*.em
+*.ses
+*.ces
 
 *.png
 *.svg
