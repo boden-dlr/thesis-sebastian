@@ -102,21 +102,8 @@ mat = readcsv("data/kate/51750S_6154V_148N_3K_15E_1234seed_embedded_KATE_cluster
 data = map(f->convert(Int64,f), mat[:,1])
 splitted = Log.split_at(data, segmentation)
 
-# filter double
-# map(seq -> filter(t -> t[2] != seq[t[1]-1], collect(enumerate(seq))), splitted)
-function filter_contiguous_duplicates(seq)
-    res = seq
-    if length(seq) > 0
-        res = [seq[1]]
-        for item in seq[2:end]
-            if res[end] != item
-                push!(res, item)
-            end
-        end
-    end
-    res
-end
-no_dups = map(seq -> filter_contiguous_duplicates(seq), splitted)
+# filter contiguous duplicates
+no_dups = map(seq -> Sequence.filter_contiguous_duplicates(seq), splitted)
 
 # prefixspan = Sequence.convert_to_prefixspan(splitted)
 writedlm(

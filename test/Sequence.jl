@@ -64,3 +64,20 @@ prefixspan_format = Sequence.convert_to_prefixspan(data)
 # A = rand(1:200, 100)
 # using LogClustering.Index
 # Index.invert()
+
+# ----------------------------------------------------------------------
+
+# TODO: generate high utility SPMF format
+
+mat = readcsv("data/kate/51750S_6154V_148N_3K_15E_1234seed_embedded_KATE_clustered_kmeans_51750P_300k.csv")
+sequence = map(f->convert(Int64,f), mat[:,1])
+sequence = Sequence.filter_contiguous_duplicates(sequence)
+high_utility = Sequence.convert_to_high_utiliy_simple_event_sequence(sequence, complex=true)
+
+writedlm(
+    string("data/spmf/in/",
+    "huem_ses_",
+    length(sequence),
+    "_no_dups",
+    ".ces"),
+    high_utility, ":")

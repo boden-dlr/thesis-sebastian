@@ -180,4 +180,39 @@ function convert_to_prefixspan(data)
     map(seq -> vcat(seq, [-2]), seqs)
 end
 
+function filter_contiguous_duplicates(seq)
+    res = seq
+    if length(seq) > 0
+        res = [seq[1]]
+        for item in seq[2:end]
+            if res[end] != item
+                push!(res, item)
+            end
+        end
+    end
+    res
+end
+
+function count_item_support(sequence)
+    d = Dict{eltype(sequence),Int64}()
+    for item in sequence
+        if haskey(d, item)
+            d[item] += 1
+        else
+            d[item] = 1
+        end
+    end
+    d
+end
+
+function convert_to_high_utiliy_simple_event_sequence(sequence; complex=false)
+    support = count_item_support(sequence)
+    frequencies = map(item -> support[item], sequence)
+    if complex
+        return zip(sequence, frequencies, frequencies)
+    else
+        return zip(sequence, frequencies)
+    end
+end
+
 end # module Sequence
