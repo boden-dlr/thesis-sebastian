@@ -139,3 +139,24 @@ end
 
 tup_t
 vec_t
+
+
+# ---------------------------------------------------------------------
+# Tries and Trees
+#
+
+using DataStructures
+
+struct Node
+    parent::Array{Node}
+    value::Char
+    children::Array{Node}
+end
+
+struct Tree
+    children::Array{Node}
+    function Tree(d::Dict{Char,UInt32})
+    end
+end
+
+Tree(Dict('h'=>0))
