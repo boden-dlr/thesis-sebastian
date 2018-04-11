@@ -89,23 +89,43 @@ assert(result == expected)
 
 # ------------------------------------------------------------------------------
 
-lines = readlines("data/logs/2014-12-02_08-58-09_1048.log")
+# lines = readlines("data/logs/2014-12-02_08-58-09_1048.log")
+lines = readlines("data/logs/2018-03-01_15-11-18_51750.log")
 
 # lines = readlines("data/logs/2016-12-14_09-00-53_243818.log")
-segmentation = Log.segment(lines, r"workflow \'(.*?)\'"i)
+segmentation = Log.segment(lines, r"workflow \'(.*?)\'"i, overlapping = false)
 # segmentation = Log.segment(lines, r"(ef7f844122bc455497615b655d7040b)")
 
-mat = readcsv("data/kate/1048S_1321V_207N_3K_15E_1234seed_embedded_KATE_clustered.csv")
+# mat = readcsv("data/kate/1048S_1321V_207N_3K_15E_1234seed_embedded_KATE_clustered.csv")
+mat = readcsv("data/kate/51750S_6154V_148N_3K_15E_1234seed_embedded_KATE_clustered_kmeans_51750P_300k.csv")
+
 data = map(f->convert(Int64,f), mat[:,1])
 splitted = Log.split_at(data, segmentation)
-prefixspan = Sequence.convert_to_prefixspan(splitted)
+
+# filter double
+# map(seq -> filter(t -> t[2] != seq[t[1]-1], collect(enumerate(seq))), splitted)
+function filter_contiguous_duplicates(seq)
+    res = seq
+    if length(seq) > 0
+        res = [seq[1]]
+        for item in seq[2:end]
+            if res[end] != item
+                push!(res, item)
+            end
+        end
+    end
+    res
+end
+no_dups = map(seq -> filter_contiguous_duplicates(seq), splitted)
+
+# prefixspan = Sequence.convert_to_prefixspan(splitted)
 writedlm(
     string("data/kate/",
     length(data),
     "_",
     length(splitted),
-    "_sequences",
-    ".prefixspan"),
-    prefixspan, " ")
-
-    splitted = Log.split_at(data, segmentation)
+    "_sequences_no_duplicates_non_overlapping",
+    ".desq"),
+    # prefixspan, " ")
+    # splitted, "\t")
+    no_dups, "\t")
