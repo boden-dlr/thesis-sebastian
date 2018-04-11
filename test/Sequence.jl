@@ -1,4 +1,5 @@
 using Base.Test
+using LogClustering.Sequence
 using LogClustering.Sequence: rows, cols, flatmap
 using LogClustering.Sequence: ngram
 
@@ -60,6 +61,6 @@ prefixspan_format = Sequence.convert_to_prefixspan(data)
 
 # ----------------------------------------------------------------------
 
-A = rand(1:200, 100)
-using LogClustering.Index
-Index.invert()
+# A = rand(1:200, 100)
+# using LogClustering.Index
+# Index.invert()
