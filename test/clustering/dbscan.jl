@@ -20,41 +20,25 @@ P = size(points)[2]
 
 algorithm = :dbscan
 
-if algorithm == :dbscan
-    clusters = dbscan(
-        points,
-        10e-5,
-        min_neighbors = 2,
-        min_cluster_size = 1)
-elseif algorithm == :fuzzy_cmeans
-    k = 20
-    clusters = fuzzy_cmeans(
-        points,
-        k,
-        2.0)
-end
-
+clusters = dbscan(
+    points,
+    10e-5,
+    min_neighbors = 2,
+    min_cluster_size = 1)
 
 # @show length(clusters)
 
 points_clustered = zeros(Int64, P)
 
-if algorithm == :dbscan
-    for (c,cluster) in enumerate(clusters)
-        
-        for i in cluster.core_indices
-            points_clustered[i] = c
-        end
-        for i in cluster.boundary_indices
-            points_clustered[i] = c
-        end
+
+for (c,cluster) in enumerate(clusters)
+    
+    for i in cluster.core_indices
+        points_clustered[i] = c
     end
-elseif algorithm == :fuzzy_cmeans
-    # @show clusters.centers
-    points_clustered[1] = clusters.centers[1:k]
-    points_clustered[2] = clusters.centers[k+1:2*k]
-    points_clustered[3] = clusters.centers[2*k+1:3*k]
-    @show length(clusters.weights)
+    for i in cluster.boundary_indices
+        points_clustered[i] = c
+    end
 end
 
 writecsv(string(path, name, "_clustered_", "$algorithm\_", P, "P.csv"), points_clustered)
