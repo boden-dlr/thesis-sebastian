@@ -21,6 +21,10 @@
 *.em
 *.ses
 *.ces
+*.zip
+*tar*
+*.gz
+*.7z
 
 *.png
 *.svg
