@@ -7,21 +7,24 @@ using StatsBase: wsample
 using Base.Iterators: partition
 using DataStructures
 
-struct KCompetetive{F,S,T}
-  σ::F
-  W::S
-  b::T
-  α::Float64 # boost
+mutable struct KCompetetive{F,S,T}
+  σ::F          # activation function
+  W::S          # weights
+  b::T          # bias
+  α::Float64    # boost
+  active::Bool  # training vs. test mode
 end
 
-function KCompetetive(in::Integer, k::Integer, σ = tanh;
+function KCompetetive(
+    in::Integer, k::Integer, σ = tanh;
+    initW = glorot_uniform, initb = zeros,
     α::Float64 = 6.26,
-    initW = glorot_uniform, initb = zeros)
+    active = true)
   if k > in
     throw(warn("Warning: k (out) should not be larger than dim: $in, found: $k, using $in"))
     k = in
   end
-  return KCompetetive(σ, param(initW(k, in)), param(initb(k)), α)
+  return KCompetetive(σ, param(initW(k, in)), param(initb(k)), α, active)
 end
 
 treelike(KCompetetive)
@@ -31,8 +34,8 @@ function (a::KCompetetive)(x)
 
     z = σ.(W*x .+ b)
 
-    # TODO: detect if this is training or prediction.
     # Only apply K-Competetion in the training phase.
+    a.active || return z
 
     ps = Vector{Tuple{Int64,Float64}}()
     ns = Vector{Tuple{Int64,Float64}}()
@@ -84,8 +87,12 @@ function (a::KCompetetive)(x)
     #  result = σ.(W*x .+ b)
     #  @show result
     #  result
-    z # conserves gradient fro back-prop
+    return z # conserves gradient for back-propagation
 end
+
+
+_testmode!(a::KCompetetive, test) = (a.active = !test)
+
 
 function Base.show(io::IO, l::KCompetetive)
   print(io, "KCompetetive(", size(l.W, 2), ", ", size(l.W, 1))

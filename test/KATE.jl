@@ -4,10 +4,11 @@ using LogClustering.NLP, LogClustering.KATE
 using LogClustering.KATE: KCompetetive
 
 using Flux
-using Flux: throttle, crossentropy #, binarycrossentropy
+using Flux: throttle, crossentropy, testmode! #, binarycrossentropy
 using Juno: @progress
 using Plots
 gr()
+
 # using Rsvg
 # plotlyjs()
 
@@ -26,18 +27,21 @@ end
 
 const basedir = pwd()
 const cwd = string(basedir, "/data/kate/")
+const dataset = string(basedir, "/data/datasets/RCE/")
 
 # lines = vcat(map(
-#     (log) -> readlines(string(basedir, "/data/logs/", log)),
-#     take(string(basedir, "/data/logs/"), 1)
+#     (log) -> readlines(string(dataset, log)),
+#     take(string(dataset), 1)
 # )...)
     # readlines(string(base, "/data/logs/", "2014-12-02_10-45-57_922.log")),
     # readlines(string(base, "/data/logs/", "2016-06-08_17-12-52_6852.log")),
-# lines = readlines(string(basedir, "/data/logs/", "2014-12-02_08-58-09_1048.log"))
-# lines = readlines(string(basedir, "/data/logs/", "2018-03-01_12-58-22_32800.log"))
-# lines = readlines(string(basedir, "/data/logs/", "2018-03-01_15-11-18_51750.log"))
-# lines = readlines(string(basedir, "/data/logs/", "2017-11-28_08-08-42_129250.log"))
-lines = readlines(string(basedir, "/data/logs/", "2017-12-01_09-02-55_9081.log"))
+# lines = readlines(string(dataset, "2014-12-02_08-58-09_1048.log"))
+# lines = readlines(string(dataset, "2018-03-01_12-58-22_32800.log"))
+# lines = readlines(string(dataset, "2018-03-01_15-11-18_51750.log"))
+# lines = readlines(string(dataset, "2017-11-28_08-08-42_129250.log"))
+# lines = readlines(string(dataset, "2017-12-01_09-02-55_9081.log"))
+lines = readlines(string(dataset, "2018-03-01_15-07-59_7296.log"))
+
 
 replacements = [
     # RCE datetime format
@@ -70,14 +74,15 @@ Xs, Ys = deepcopy(input[1:end-1]), deepcopy(input[2:end])
 # @show input
 
 # make model reproduceable
-seed = 1235
-# seed = rand(1:10000)
+# seed = 1235
+seed = rand(1:10000)
+
 srand(seed)
 S = length(input)
 V = length(vocabulary)
 N = convert(Int64, length(input[1]))
 K = 3 #min(64, convert(Int64, round(N/10)))
-Epochs = 5
+Epochs = 1
 # truncate = false
 @show length(lines), S, V, N, K, Epochs, seed
 
@@ -89,6 +94,8 @@ writecsv("$prefix\_wordcount.csv", wordcount)
 m = Chain(
     KCompetetive(N, K, tanh),
     Dense(K, N, sigmoid))
+
+testmode!(m, false)
 
 function loss(xs, ys)
     # @show typeof(xs), typeof(ys)
@@ -104,8 +111,8 @@ end
 training = Vector{Float64}()
 function evaluation_callback()
     l = loss(Xs[5], Ys[5])
-    @show l
-    push!(training, getindex(l.data))
+    @show l, typeof(l)
+    push!(training, l.tracker.data)
 end
 
 opt = Flux.ADADelta(params(m))
@@ -120,6 +127,7 @@ opt = Flux.ADADelta(params(m))
 end
 
 
+testmode!(m)
 # initW = (out,in) -> deepcopy(m[1].W.data)
 # initb = (out) -> deepcopy(m[1].b.data)
 # d = Dense(N,K,tanh,initW=initW,initb=initb)
@@ -187,5 +195,5 @@ if plot_results
         savefig(d4, "$prefix\_embedded_4d.png")
     end
 
-    # current()
+    current()
 end
