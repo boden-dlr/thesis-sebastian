@@ -10,6 +10,11 @@ function empty(s)
     s == ""
 end
 
+Line = Array{String,1}
+Document = Array{Line,1}
+Corpus = Array{Document,1}
+Dict = DataStructures.OrderedDict
+
 # ::Array{Array{String,1},1}
 function count_words(text)
     unique_words = reduce(
@@ -26,6 +31,51 @@ function count_words(text)
             by  = (t) -> t[2],
             rev = true))
 end
+
+WordCount = DataStructures.OrderedDict{String, Int64}
+WordCounts = Array{WordCount,1}
+TermFrequency = DataStructures.OrderedDict{String, Float64}
+TermFrequencies = Array{TermFrequency,1}
+
+function term_frequency(term, document; normalize::Bool = true, wc::Union{WordCount, Void} = nothing, max::Union{Float64, Void} = nothing)
+    wc == nothing ? wc = count_words(document) : wc
+    result::Float64 = wc[term]
+    if normalize
+        max == nothing ? max = convert(Float64, maximum(values(wc))) : max
+        result = result / max
+    end
+    result
+end
+
+function count_words(corpus::Corpus)::WordCounts
+    map(doc -> count_words(doc), corpus)
+end
+
+function unique_terms(wcs::WordCounts)
+    unique(vcat(map(wc -> collect(keys(wc)), wcs)...))
+end
+
+function count_occurences(term::String, wcs::WordCounts)
+    reduce(+, 0.0, map(wc -> haskey(wc, term), wcs))
+end
+
+function inverse_document_frequency(term::String, N::Int64, count::TermFrequency)
+    # N = length(corpus)
+    # WCs = WordCount[]
+    # for doc in corpus
+    #     push!(WCs, count_words(doc))
+    # end
+    # terms = unique(vcat(map(wc -> collect(keys(wc)), WCs)...))
+    # map(term -> term => N / reduce(+, 0.0, map(wc -> haskey(wc, term), WCs)), terms)
+    N / count[term]
+end
+
+
+function tf_idf(corpus)
+    # tf(t, D) * idf(t)
+
+end
+
 
 function tokenize(lines::Array{String};
     limit::Nullable{Int64} = Nullable{Int64}(),

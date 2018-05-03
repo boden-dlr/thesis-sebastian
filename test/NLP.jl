@@ -139,3 +139,48 @@ wordcount_expected = DataStructures.OrderedDict(
     "and"      => 1,
 )
 assert(wordcount == wordcount_expected)
+
+# tf:       Term Frequency
+# idf:      Inverse Document Frequency
+# tf-idf:   Term Frequency * Inverse Document Frequency
+
+using LogClustering.NLP
+
+corpus = map(c -> readlines("data/datasets/test/$c.txt"), 1:4)
+# read lines
+corpus = map(doc -> map(line -> lowercase(line), doc), corpus)
+# split and filter by whitespaces und non alphabetic
+corpus = map(doc -> map(line -> split(line, r"\s+|[^a-z\']+"i), doc), corpus)
+# convert SubStrings to simple Strings
+corpus = map(doc -> map(line -> map(term -> convert(String, term), line), doc), corpus)
+# filter emptt terms
+corpus = map(doc -> map(line -> filter(term -> length(term) > 0, line), doc), corpus)
+assert(typeof(corpus) == NLP.Corpus)
+
+tfs = NLP.TermFrequencies()
+for doc in corpus
+    wc = NLP.count_words(doc)
+    max = convert(Float64, maximum(values(wc)))
+    terms = collect(keys(wc))
+    push!(tfs, DataStructures.OrderedDict(
+            map(term -> 
+                term => NLP.term_frequency(term, doc, wc=wc, max=max),
+                terms)))
+end
+tfs
+
+wcs = NLP.count_words(corpus)
+terms = NLP.unique_terms(wcs)
+occs = NLP.Dict(map(term -> term => NLP.count_occurences(term, wcs), terms))
+N = length(corpus)
+
+idf = NLP.Dict(map(term -> term => NLP.inverse_document_frequency(term, N, occs), terms))
+
+tf_idfs = map(tf -> NLP.Dict{String, Any}(
+    map(term -> 
+        if haskey(tf, term)
+            # @show term, tf[term], idf[term], tf[term] * idf[term]
+            term => tf[term] * idf[term]
+        else
+            term => nothing
+        end, terms)), tfs)
