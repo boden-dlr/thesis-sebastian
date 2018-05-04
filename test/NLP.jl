@@ -150,7 +150,7 @@ corpus = map(c -> readlines("data/datasets/test/$c.txt"), 1:4)
 # read lines
 corpus = map(doc -> map(line -> lowercase(line), doc), corpus)
 # split and filter by whitespaces und non alphabetic
-corpus = map(doc -> map(line -> split(line, r"\s+|[^a-z\']+"i), doc), corpus)
+corpus = map(doc -> map(line -> split(line, r"\s+|[^a-z0-9\']+"i), doc), corpus)
 # convert SubStrings to simple Strings
 corpus = map(doc -> map(line -> map(term -> convert(String, term), line), doc), corpus)
 # filter emptt terms
