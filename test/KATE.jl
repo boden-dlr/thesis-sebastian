@@ -1,10 +1,12 @@
 using Base.Test
 
+using Memoize
 using LogClustering.NLP, LogClustering.KATE
 using LogClustering.KATE: KCompetetive
 
 using Flux
 using Flux: throttle, crossentropy, testmode! #, binarycrossentropy
+using NNlib: relu, leakyrelu
 using Juno: @progress
 using Plots
 gr()
@@ -29,39 +31,45 @@ const basedir = pwd()
 const cwd = string(basedir, "/data/kate/")
 const dataset = string(basedir, "/data/datasets/RCE/")
 
-# lines = vcat(map(
-#     (log) -> readlines(string(dataset, log)),
-#     take(string(dataset), 1)
-# )...)
-    # readlines(string(base, "/data/logs/", "2014-12-02_10-45-57_922.log")),
-    # readlines(string(base, "/data/logs/", "2016-06-08_17-12-52_6852.log")),
-# lines = readlines(string(dataset, "2014-12-02_08-58-09_1048.log"))
-# lines = readlines(string(dataset, "2018-03-01_12-58-22_32800.log"))
-# lines = readlines(string(dataset, "2018-03-01_15-11-18_51750.log"))
-# lines = readlines(string(dataset, "2017-11-28_08-08-42_129250.log"))
-# lines = readlines(string(dataset, "2017-12-01_09-02-55_9081.log"))
-lines = readlines(string(dataset, "2018-03-01_15-07-59_7296.log"))
+@memoize function generate_input()
 
+    # lines = vcat(map(
+    #     (log) -> readlines(string(dataset, log)),
+    #     take(string(dataset), 1)
+    # )...)
+        # readlines(string(base, "/data/logs/", "2014-12-02_10-45-57_922.log")),
+        # readlines(string(base, "/data/logs/", "2016-06-08_17-12-52_6852.log")),
+    # lines = readlines(string(dataset, "2014-12-02_08-58-09_1048.log"))
+    lines = readlines(string(dataset, "2018-03-01_12-58-22_32800.log"))
+    # lines = readlines(string(dataset, "2018-03-01_15-11-18_51750.log"))
+    # lines = readlines(string(dataset, "2017-11-28_08-08-42_129250.log"))
+    # lines = readlines(string(dataset, "2017-12-01_09-02-55_9081.log"))
+    # lines = readlines(string(dataset, "2018-03-01_15-07-59_7296.log"))
 
-replacements = [
-    # RCE datetime format
-    (r"^\d{4,4}\-\d{2,2}\-\d{2,2}\ \d{2,2}\:\d{2,2}\:\d{2,2}\,\d{3,3}","timestamp"),
-    # syslog datetime format
-    # (r"\w{3,3}\ \d{2,2}\ \d{2,2}\:\d{2,2}\:\d{2,2}","%timestamp%"),
-    # (r"\d{2,2}\:\d{2,2}\:\d{2,2}","%time%"),
-    # (r"\d+","%number%"),
-]
+    replacements = [
+        # RCE datetime format
+        (r"^\d{4,4}\-\d{2,2}\-\d{2,2}\ \d{2,2}\:\d{2,2}\:\d{2,2}\,\d{3,3}","timestamp"),
+        # syslog datetime format
+        # (r"\w{3,3}\ \d{2,2}\ \d{2,2}\:\d{2,2}\:\d{2,2}","%timestamp%"),
+        # (r"\d{2,2}\:\d{2,2}\:\d{2,2}","%time%"),
+        # (r"\d+","%number%"),
+    ]
 
-tokenized, wordcount = NLP.tokenize(
-    lines,
-    # splitby = r"[^\wäÄöÖüÜ&\.\:\,\;\\\/\-\_\'\%]+",
-    #  [\=\(\)\{\}\[\]\\\/\:\;\'\`\"]|
-    splitby = r"\s+|[\.\,](?!\d)|[^\w\p{L}\-\_\.\,]",
-    replacements = replacements)
+    tokenized, wordcount = NLP.tokenize(
+        lines,
+        # splitby = r"[^\wäÄöÖüÜ&\.\:\,\;\\\/\-\_\'\%]+",
+        #  [\=\(\)\{\}\[\]\\\/\:\;\'\`\"]|
+        splitby = r"\s+|[\.\,](?!\d)|[^\w\p{L}\-\_\.\,]",
+        replacements = replacements)
 
-vocabulary = collect(keys(wordcount))
-sort(collect(wordcount), by=kv->kv[2], rev=true)
-input = KATE.normalize(tokenized, wordcount)
+    vocabulary = collect(keys(wordcount))
+    sort(collect(wordcount), by=kv->kv[2], rev=true)
+    input = KATE.normalize(tokenized, wordcount)
+
+    lines, tokenized, wordcount, vocabulary, input
+end
+
+lines, tokenized, wordcount, vocabulary, input = generate_input()
 
 Xs, Ys = deepcopy(input[1:end-1]), deepcopy(input[2:end])
 # Xs, Ys = input[1:end-1], input[2:end]
@@ -74,28 +82,53 @@ Xs, Ys = deepcopy(input[1:end-1]), deepcopy(input[2:end])
 # @show input
 
 # make model reproduceable
-# seed = 1235
-seed = rand(1:10000)
+# 1111 (++)
+# 1234 (++)
+# 1235 (+)
+# 9284 (+)
+# 6455 (++)
+# 9259 (+++)
+# 4528 (+++++)
+# 2841 (++++)
+# 7235 (++++++)
+# 8041 (+++)
+
+# seed = rand(1:10000)
+seed = 7235
 
 srand(seed)
 S = length(input)
 V = length(vocabulary)
 N = convert(Int64, length(input[1]))
-K = 3 #min(64, convert(Int64, round(N/10)))
-Epochs = 1
+L = 2
+k = 2
+Epochs = 2
 # truncate = false
-@show length(lines), S, V, N, K, Epochs, seed
+@show length(lines), S, V, N, L, k, Epochs, seed
 
-prefix = string(cwd, S, "S_", V, "V_", N, "N_", K, "K_", seed, "seed_", Epochs, "E") #_", truncate, "truncate")
+prefix = string(cwd, S, "S_", V, "V_", N, "N_", L, "L_", k, "k_", seed, "seed_", Epochs, "E") #_", truncate, "truncate")
 
 writecsv("$prefix\_tokenized.csv", tokenized)
 writecsv("$prefix\_wordcount.csv", wordcount)
 
-m = Chain(
-    KCompetetive(N, K, tanh),
-    Dense(K, N, sigmoid))
+act_fn = tanh
 
-testmode!(m, false)
+m = Chain(
+    # KCompetetive(N, 100, tanh, k=k),
+    # KCompetetive(100, 50, tanh, k=k),
+    Dense(N, 10, act_fn),
+    Dropout(0.05),
+    Dense(10, 5, act_fn),
+    Dropout(0.05),
+    KCompetetive(5, L, tanh, k=k),
+    # KCompetetive(L, 50, tanh, k=k),
+    # KCompetetive(50, 100, tanh, k=k),
+    Dense(L, 5, act_fn),
+    Dense(5, 10, act_fn),
+    Dense(10, N, sigmoid))
+
+# testmode!(m, false)
+assert(m[1].active == true)
 
 function loss(xs, ys)
     # @show typeof(xs), typeof(ys)
@@ -111,7 +144,7 @@ end
 training = Vector{Float64}()
 function evaluation_callback()
     l = loss(Xs[5], Ys[5])
-    @show l, typeof(l)
+    @show l
     push!(training, l.tracker.data)
 end
 
@@ -128,19 +161,24 @@ end
 
 
 testmode!(m)
+m[1].active = false
+m[2].active = false
+m[3].active = false
+assert(m[1].active == false)
 # initW = (out,in) -> deepcopy(m[1].W.data)
 # initb = (out) -> deepcopy(m[1].b.data)
-# d = Dense(N,K,tanh,initW=initW,initb=initb)
+# d = Dense(N,L,tanh,initW=initW,initb=initb)
 
 maxVal = -Inf
 maxIdx = 1
 minVal = Inf
 minIdx = 1
 
-cluster = Matrix{Float64}(S,K)
+cluster = zeros(Float64, S,L)
 
 for s = 1:S
-    embedded = m[1](input[s]).data
+    # embedded = m[1](input[s]).data
+    embedded = m[5](m[4](m[3](m[2](m[1](input[s]))))).data
     if s < 10
         @show embedded
     end
@@ -174,17 +212,17 @@ if plot_results
     
     # savefig(plot(training), "$prefix\_loss.png")
 
-    if K == 2
+    if L == 2
         d2 = scatter(cluster[:,1],cluster[:,2], label=["embedded"])
         savefig(d2, "$prefix\_embedded_2d.png")
     end
 
-    if K == 3
+    if L == 3
         d3 = scatter3d(cluster[:,1],cluster[:,2],cluster[:,3], label=["embedded"])
         savefig(d3, "$prefix\_embedded_3d.png")
     end
 
-    if K == 4
+    if L == 4
         d4 = plot(
             scatter3d(cluster[:,1],cluster[:,2],cluster[:,3], label=["1,2,3"]),
             scatter3d(cluster[:,1],cluster[:,2],cluster[:,4], label=["1,2,4"]),
@@ -197,3 +235,5 @@ if plot_results
 
     current()
 end
+
+prefix

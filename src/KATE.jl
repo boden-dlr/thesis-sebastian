@@ -11,26 +11,30 @@ mutable struct KCompetetive{F,S,T}
   σ::F          # activation function
   W::S          # weights
   b::T          # bias
+  k::Int64      # k competition
   α::Float64    # boost
   active::Bool  # training vs. test mode
 end
 
+KCompetetive(W, b) = KCompetetive(W, b, tanh)
+
 function KCompetetive(
-    in::Integer, k::Integer, σ = tanh;
+    in::Integer, out::Integer, σ = tanh;
     initW = glorot_uniform, initb = zeros,
+    k::Int64 = round(Int64, out/2),
     α::Float64 = 6.26,
     active = true)
-  if k > in
-    throw(warn("Warning: k (out) should not be larger than dim: $in, found: $k, using $in"))
-    k = in
+  if k > out
+    warn("k should not be larger than dim (out): $out, found (k): $k, using: $out")
+    k = out
   end
-  return KCompetetive(σ, param(initW(k, in)), param(initb(k)), α, active)
+  return KCompetetive(σ, param(initW(out, in)), param(initb(out)), k, α, active)
 end
 
 treelike(KCompetetive)
 
 function (a::KCompetetive)(x)
-    W, b, σ, α = a.W, a.b, a.σ, a.α
+    σ, W, b, k, α = a.σ, a.W, a.b, a.k, a.α
 
     z = σ.(W*x .+ b)
 
@@ -47,21 +51,18 @@ function (a::KCompetetive)(x)
             push!(ns, (i, activation))
         end
     end
-    ps = sort(ps, by=last)
-    ns = sort(ns, by=last, rev=true)
+    ps = sort(ps, by=last) # ascending
+    ns = sort(ns, by=last, rev=true)  # descending
     P = length(ps)
     N = length(ns)
-    k = first(size(a.W))
 
     z_hat = data(z)
-
-    p = P-Int(round(k/2))
+    
+    p = P-round(Int64, k/2)
     if p > 0
         Epos = sum(map(last, ps[1:p]))
-        # @show Epos
         for i = p+1:P
             # positive winners
-            # z_hat[first(ps[i])] += α * Epos
             z_hat[first(ps[i])] = z_hat[first(ps[i])] + (α * Epos)
         end
         for i = 1:p
@@ -70,13 +71,11 @@ function (a::KCompetetive)(x)
         end
     end
 
-    n = N-Int(round(k/2))
+    n = N-round(Int64, k/2)
     if n > 0
         Eneg = sum(map(last, ns[1:n]))
-        # @show Eneg
         for i = n+1:N
             # negative winners
-            # z_hat[first(ns[i])] += α * Eneg
             z_hat[first(ns[i])] = z_hat[first(ns[i])] + (α * Eneg)
         end
         for i = 1:n
@@ -84,10 +83,11 @@ function (a::KCompetetive)(x)
             z_hat[first(ns[i])] = 0.0
         end
     end
-    #  result = σ.(W*x .+ b)
-    #  @show result
-    #  result
-    return z # conserves gradient for back-propagation
+
+    # Return z instead of z_hat in order to conserve 
+    # the gradient for back-propagation. This is possible
+    # as z_hat contains the values of z by reference.
+    return z 
 end
 
 
@@ -97,7 +97,9 @@ _testmode!(a::KCompetetive, test) = (a.active = !test)
 function Base.show(io::IO, l::KCompetetive)
   print(io, "KCompetetive(", size(l.W, 2), ", ", size(l.W, 1))
   l.σ == identity || print(io, ", ", l.σ)
+  print(io, ", ", l.k)
   print(io, ", ", l.α)
+  print(io, ", ", l.active)
   print(io, ")")
 end
 
