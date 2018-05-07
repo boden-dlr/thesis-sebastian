@@ -6,7 +6,7 @@ using LogClustering.KATE: KCompetetive
 
 @testset "KCompetetive" begin
 
-    @testset "Simplest KCompetetive Call" begin
+    @testset "Simplest KCompetetive Instance" begin
         l = KCompetetive(1, 2)
         @test size(l.W) == (2,1)
         @test length(l.b) == 2
