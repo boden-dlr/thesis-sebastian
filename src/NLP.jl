@@ -2,42 +2,199 @@ module NLP
 
 using DataStructures
 
-function nonempty(s)
+function is_not_empty(s::String)
     s != ""
 end
 
-function empty(s)
+function is_empty(s::String)
     s == ""
 end
 
+Terms = Set{String}
 Line = Array{String,1}
 Document = Array{Line,1}
 Corpus = Array{Document,1}
 Dict = DataStructures.OrderedDict
 
 # ::Array{Array{String,1},1}
-function count_words(text)
-    unique_words = reduce(
-        union,
-        Set{String}(),
-        map(line -> unique(line), text))
-    # @show length(unique_words), typeof(unique_words)
-    # @show unique_words
-    word_counts = Dict{String,Int64}(map(word -> (word, 0), unique_words))
-    map(line -> map(word -> word_counts[word] += 1, line), text)
+# function count_words(text)
+#     unique_words = reduce(
+#         union,
+#         Set{String}(),
+#         map(line -> unique(line), text))
+#     # @show length(unique_words), typeof(unique_words)
+#     # @show unique_words
+#     word_counts = Dict{String,Int64}(map(word -> (word, 0), unique_words))
+#     map(line -> map(word -> word_counts[word] += 1, line), text)
 
-    DataStructures.OrderedDict(sort(
-            collect(word_counts),
-            by  = (t) -> t[2],
-            rev = true))
-end
+#     DataStructures.OrderedDict(sort(
+#             collect(word_counts),
+#             by  = (t) -> t[2],
+#             rev = true))
+# end
 
-WordCount = DataStructures.OrderedDict{String, Int64}
-WordCounts = Array{WordCount,1}
+TermCount = DataStructures.OrderedDict{String, Int64}
+TermCounts = Array{TermCount,1}
+@deprecate WordCount TermCount
+@deprecate WordCounts TermCounts
 TermFrequency = DataStructures.OrderedDict{String, Float64}
 TermFrequencies = Array{TermFrequency,1}
 
-function term_frequency(term, document; normalize::Bool = true, wc::Union{WordCount, Void} = nothing, max::Union{Float64, Void} = nothing)
+warnings = Dict(
+    :terms => "The unique terms (`::Terms`) of the document should be provided.",
+    :counts => "The count of terms dictionary (`::TermCount`) in the document should provided.",
+)
+
+function terms(document::Document)::Terms
+    uniques = map(line -> Terms(unique(line)), document)
+    reduce(union, Terms(), uniques)
+end
+
+
+function terms(corpus::Corpus)::Terms
+    ts = map(doc -> terms(doc), corpus)
+    reduce(union, Terms(), ts)
+end
+
+
+function binary(term::String, document::Document;
+    terms::Union{Terms,Void} = nothing)::Int64
+    if terms == nothing
+        warn(warnings[:terms])
+        terms = NLP.terms(document)
+    end
+    convert(Int64, haskey(terms.dict, term))
+end
+
+
+function count_terms(document::Document;
+    terms::Union{Terms,Void} = nothing)::TermCount
+
+    if terms == nothing
+        warn(warnings[:terms])
+        terms = NLP.terms(document)
+    end
+
+    wc = Dict{String,Int64}(map(term -> term => 0, terms))
+    map(line -> map(term -> wc[term] += 1, line), document)
+
+    TermCount(sort(
+        collect(wc),
+        by  = (t) -> t[2],
+        rev = true))
+end
+
+@deprecate count_words count_terms
+
+
+function count_term(term::String, document::Document;
+    terms::Union{Terms,Void} = nothing,
+    counts::Union{TermCount,Void} = nothing)::Int64
+
+    if counts == nothing
+        warn(warnings[:counts])
+        counts = NLP.count_terms(document, terms=terms)
+    end
+    counts[term]
+end
+
+
+function count_terms(corpus::Corpus)::TermCounts
+    map(doc -> NLP.count_terms(doc; terms=NLP.terms(doc)), corpus)
+end
+
+
+function count_terms_overall_documents(corpus::Corpus)::TermCount
+    wco = TermCount()
+    wcs = map(
+        doc -> NLP.count(doc, terms=NLP.terms(doc)),
+        corpus)
+
+    for wc in wcs
+        for (term, c) in collect(wc)
+            if haskey(wco, term)
+                wco[term] += c
+            else
+                wco[term] = c
+            end
+        end
+    end
+    wco
+end
+
+
+function term_frequency(term::String, counts::TermCount)::Float64
+    counts[term] / length(counts)
+end
+
+
+function term_frequency_log_normalized(term::String, counts::TermCount)::Float64
+    log(1.0 + counts[term])
+end
+
+
+function maximum_value(d)
+    maximum(values(d))
+end
+
+
+function term_frequency_double_normalized(term::String, counts::TermCount, K::Float64 = 0.5)::Float64
+    K + (1.0-K) * (counts[term] / maximum_value(counts))
+end
+
+"""Calculate the term frequency (default mode :double_normalized).
+
+    mode::Symbol = :double_normalized   term frequency mode
+
+        :binary             ::Int64     0,1     occurance (false, true)
+        :count              ::Int64     Z       counts[term]
+        :term_frequency     ::Float64   R       counts[term] / length(counts)
+        :log_normalized     ::Float64   R       log(1 + counts[term])
+        :double_normalized  ::Float64   R       K + (1-K) * (counts[term] / maximum(values(counts)))
+
+    terms::Terms
+
+    counts::TermCount
+
+    K::Float64 = 0.5
+
+"""
+function term_frequency(term::String, document::Document;
+    mode::Symbol = :double_normalized,
+    terms::Union{Terms,Void} = nothing,
+    counts::Union{TermCount,Void} = nothing,
+    K::Float64 = 0.5)
+
+    if terms == nothing
+        warn(warnings[:terms])
+        terms = NLP.terms(document)
+    end
+
+    if mode != :binary && counts == nothing
+        warn(warnings[:counts])
+        counts = NLP.count_terms(document, terms=terms)
+    end
+
+    if mode == :binary
+        return binary(term, document, terms=terms)
+    elseif mode == :count
+        return count_term(term, document, terms=terms, counts=counts)
+    elseif mode == :term_frequency
+        return term_frequency(term, counts)
+    elseif mode == :log_normalized
+        return term_frequency_log_normalized(term, counts)
+    elseif mode == :double_normalized
+        return term_frequency_double_normalized(term, counts, K)
+    end
+end
+
+
+
+function naive_term_frequency(term::String, document::Document;
+    normalize::Bool = true,
+    wc::Union{TermCount, Void} = nothing,
+    max::Union{Float64, Void} = nothing)
+
     wc == nothing ? wc = count_words(document) : wc
     result::Float64 = wc[term]
     if normalize
@@ -47,33 +204,101 @@ function term_frequency(term, document; normalize::Bool = true, wc::Union{WordCo
     result
 end
 
-function count_words(corpus::Corpus)::WordCounts
-    map(doc -> count_words(doc), corpus)
-end
 
-function unique_terms(wcs::WordCounts)
+function unique_terms(wcs::TermCounts)
     unique(vcat(map(wc -> collect(keys(wc)), wcs)...))
 end
 
-function count_occurences(term::String, wcs::WordCounts)
+function count_occurences(term::String, wcs::TermCounts)
     reduce(+, 0.0, map(wc -> haskey(wc, term), wcs))
 end
 
-function inverse_document_frequency(term::String, N::Int64, count::TermFrequency)
-    # N = length(corpus)
-    # WCs = WordCount[]
-    # for doc in corpus
-    #     push!(WCs, count_words(doc))
-    # end
-    # terms = unique(vcat(map(wc -> collect(keys(wc)), WCs)...))
-    # map(term -> term => N / reduce(+, 0.0, map(wc -> haskey(wc, term), WCs)), terms)
-    N / count[term]
+
+"""Calculates the idf for given term and corpus
+
+    The corpus is provided as precalculated values for `N` and `n_term`.
+
+    term::String            given term.
+
+    N::Integer              Overall number of documents in the corpus (dataset).
+
+    n_term::Integer         Number of documents in the corpus containing given
+                            term.
+
+    mode::Symbol = :idf     idf weighting
+
+        :unary              `1`
+        :idf                `log(N / n_term)`
+        :smooth             `log(1 + N / n_term)`
+        :max                `log(max(terms_in documents) / 1 + n_term)`
+        :probabilistic      `log(N - n_term / n_term)`
+
+    divzero::Float64 = 1.0  Avoid division by zero by adding a threshold to the 
+                            idf-denominator.
+                            Modes `:unary` and `:max` always avoid divison by
+                            zero.
+
+    max::Integer            maximal occurance of all terms in the corpus.
+
+        ```julia
+        terms = NLP.terms(corpus)
+        term_counts = NLP.count_terms(corpus)
+        max = maximum(map(term -> 
+            convert(Int64, NLP.count_occurences(term, term_counts)),
+            terms))
+        ```
+
+"""
+function inverse_document_frequency(
+    term::String,
+    N::Integer,
+    n_term::Integer;
+    mode::Symbol = :idf,
+    divzero::Float64 = 0.0,
+    max::Union{Integer,Void} = N)
+
+    if mode == :unary
+        return 1.0
+    end
+    
+    if mode == :idf
+        return log(N / (divzero + n_term))
+    elseif mode == :smooth
+        return log(1.0 + (N / divzero + n_term))
+    elseif mode == :max
+        if max == nothing
+            error("`max` should be provided as keyword argument.")
+        end
+        return log(max / (1.0 + n_term))
+    elseif mode == :probabilistic
+        return log((N - n_term) / (divzero + n_term))
+    else
+        error("unkown mode")
+    end
 end
 
 
-function tf_idf(corpus)
-    # tf(t, D) * idf(t)
+function naive_inverse_document_frequency(term::String, corpus::Corpus;
+    mode::Symbol = :idf,
+    divzero::Float64 = 0.0,
+    max::Union{Integer,Void} = nothing)
+    warn("""Using the naive idf implementation is not recommended.
+    Consider using `NLP.inverse_document_frequency` by providing precalculated arguments.""")
 
+    N = length(corpus)
+    wcs = NLP.count_terms(corpus)
+    terms = NLP.unique_terms(wcs)
+    terms_in_docs = NLP.Dict(map(
+        term -> term => convert(Int64, NLP.count_occurences(term, wcs)),
+        terms))
+
+    NLP.inverse_document_frequency(term, N, terms_in_docs[term]; mode=mode, divzero=divzero, max=max)
+end
+
+
+function naive_tf_idf(term::String, document::Document, corpus::Corpus)
+    # tf(t, d) * idf(t, D)
+    term_frequency(term, document) * naive_inverse_document_frequency(term, corpus)
 end
 
 
@@ -85,7 +310,7 @@ function tokenize(lines::Array{String};
 
     # lines = readlines(src)
     # @show length(lines)
-    lines_filtered = filter(nonempty, lines)
+    lines_filtered = filter(is_not_empty, lines)
     # @show length(lines_filtered), typeof(lines_filtered)
     # @show lines_filtered
 
@@ -102,7 +327,7 @@ function tokenize(lines::Array{String};
 
     lines_splitted = map(line ->
         filter(
-            nonempty,
+            is_not_empty,
             map(sub ->
                 convert(String,sub),
                 split(line, splitby))
@@ -125,13 +350,14 @@ function tokenize(lines::Array{String};
     end
     # @show lines_limited
     # @show length(lines_limited), typeof(lines_limited)
-    word_count = count_words(lines_limited)
-    # for elem in word_count
+    ts = NLP.terms(lines_limited)
+    termcount = count_terms(lines_limited, terms=ts)
+    # for elem in termcount
     #     @show elem
     # end
-    # @show length(word_count), typeof(word_count)
+    # @show length(termcount), typeof(termcount)
 
-    lines_limited, word_count
+    lines_limited, termcount
 end
 
 end # module NLP

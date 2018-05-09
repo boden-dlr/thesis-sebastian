@@ -5,7 +5,7 @@ using StatsBase: wsample
 using Base.Iterators: partition
 using LogClustering.Sparse
 using LogClustering.Sparse: MultiChar
-using Flux: relu, sigmoid
+using Flux: relu, leakyrelu, sigmoid
 # using CuArrays
 using Plots
 gr()
@@ -20,7 +20,7 @@ text = collect(readstring(file))
 drop = 32
 text_lines = collect(
     map(line -> length(line) > drop ? line[drop:end] : line,
-        readlines(file)[1000:end-1000]))
+        readlines(file)))
 
 alphabet = [unique(text)..., '¿']
 stop = onehot('¿', alphabet)
@@ -74,17 +74,25 @@ L = 2
 m = Chain(
     MultiChar(seqlen, 128, A),
     # MultiChar(seqlen, 128, A, σ=sigmoid),
-    LSTM(128, 64),
-    LSTM(64, L),
-    LSTM(L, 64),
-    LSTM(64, 128),
-    # Dense(128, 64, tanh),
-    # Dense(64, L, tanh),
-    # Dense(L, 64, tanh),
-    # Dense(64, 128, tanh),
+    # MultiChar(seqlen, 128, A, σ=cos),
+    
+    # LSTM(128, 64),
+    # LSTM(64, L),
+    # LSTM(L, 64),
+    # LSTM(64, 128),
+
+    LSTM(128, L),
+    LSTM(L, 128),
+
+    # Dense(128, 64, leakyrelu),
+    # Dense(64, L, sigmoid),
+    # Dense(L, 64, leakyrelu),
+    # Dense(64, 128, leakyrelu),
+
     # Dense(128, N, sigmoid),
-    # Dense(128, N, relu),
-    Dense(128, N),
+    Dense(128, N, leakyrelu),
+    # Dense(128, N),
+    # Dense(128, N),
     softmax) |> gpu
 
 arch = string(m[1].join, ", ", string(m[2:end]))
@@ -109,23 +117,35 @@ opt = ADAM(params(m), 0.01)
 function sample(m, alphabet, len; temp = 1)
     Flux.reset!(m)
     buf = IOBuffer()
-    c = rand(alphabet)
-    for i = 1:len
-      write(buf, c)
-      c = wsample(alphabet, m(onehot(c, alphabet)).data)
+    # noise = rand(alphabet, len) 
+    noise = fill(rand(alphabet), len)
+    encoded = map(c->onehot(c, alphabet), noise)
+    data = m(encoded).data
+    a = length(alphabet)
+    for i in 1:a:len*a
+        c =  wsample(alphabet, data[i:i+a-1])
+        write(buf, c)
     end
-    return String(take!(buf))
+        
+    # map(e -> wsample(alphabet, e), data[1:a])
+    # for i = 1:len
+    #   write(buf, c)
+    # #   c = wsample(alphabet, m(onehot(c, alphabet)).data)
+    # end
+    # @show String(take!(buf))
+
+    String(take!(buf))
 end
 
 evalcb = function ()
     l = loss(Xs[1], Ys[1])
     @show l
-    if l.tracker.data <= 1600
+    if l.tracker.data <= 1550
         return :stop
     end
-    # println()
-    # println(sample(deepcopy(m), alphabet, seqlen))
-    # println(repeat("-", 72))
+    println()
+    println(sample(deepcopy(m), alphabet, seqlen))
+    println(repeat("-", 72))
 end
 
 # Training
@@ -145,22 +165,25 @@ Flux.reset!(m)
 
 function embed(oh, m)
     Flux.truncate!(m)
+    # Flux.reset!(m)
     m[1:3](oh).data
 end
 
-from = 10000
-to   = 13000
+offset = 500
+from = 1 + offset
+step = round(Int64, length(text_lines_one_hot) / 100)
+to = length(text_lines_one_hot) - offset
 
 embedded = @time map(
     line -> embed(line, m),
-    text_lines_one_hot[from:to])
+    text_lines_one_hot[from:step:to])
 
 S = length(text_lines)
 E = length(embedded)
 l = loss(Xs[1], Ys[1])
 l_str = @sprintf("%.0f", l)
 
-basestr = "data/embedding/charlstm/CharLSTM_$arch\_$S\N\_$seed\seed\_$L\_$l_str\loss\_$E\E\_$from\_$to\_"
+basestr = "data/embedding/charlstm/CharLSTM_$arch\_$S\N\_$seed\seed\_$L\_$l_str\loss\_$E\E\_$from\_$step\_$to\_"
 
 writedlm(string(basestr, "embedded.csv"), embedded)
 

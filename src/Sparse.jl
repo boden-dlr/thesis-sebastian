@@ -3,14 +3,14 @@ module Sparse
 using Flux
 using Flux: treelike
 
-mutable struct MultiChar{A,L}
+mutable struct MultiChar{A,L,K}
     in::A
     out::A
     # n::A
     a::A
     m::A
     layers::Array{L}
-    join::L
+    join::K
     # σ::F
     active::Bool
 end
@@ -25,8 +25,10 @@ function MultiChar(
     active::Bool = true)
 
     layers = map(i-> L(a, m, σ), 1:in)
-    join = L(in * m, out, σ)
-
+    join = LSTM(in * m, out)
+    # layers = map(i-> LSTM(a, m), 1:in)
+    # join = LSTM(in * m, out)
+    
     @show typeof(L)
     # MultiChar(in, out, n, a, m, layers, join, σ, active)
     MultiChar(in, out, a, m, layers, join, active)

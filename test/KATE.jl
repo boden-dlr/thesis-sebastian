@@ -5,7 +5,7 @@ using LogClustering.NLP, LogClustering.KATE
 using LogClustering.KATE: KCompetetive
 
 using Flux
-using Flux: throttle, crossentropy, testmode! #, binarycrossentropy
+using Flux: throttle, crossentropy, mse, testmode! #, binarycrossentropy
 using NNlib: relu, leakyrelu
 using Juno: @progress
 using Plots
@@ -33,20 +33,21 @@ const dataset = string(basedir, "/data/datasets/RCE/")
 
 @memoize function generate_input()
 
-    # lines = vcat(map(
-    #     (log) -> readlines(string(dataset, log)),
-    #     take(string(dataset), 1)
-    # )...)
+    lines = vcat(map(
+        (log) -> readlines(string(dataset, log)),
+        take(string(dataset), 10)
+    )...)
+
         # readlines(string(base, "/data/logs/", "2014-12-02_10-45-57_922.log")),
         # readlines(string(base, "/data/logs/", "2016-06-08_17-12-52_6852.log")),
     # lines = readlines(string(dataset, "2014-12-02_08-58-09_1048.log"))
-    lines = readlines(string(dataset, "2018-03-01_12-58-22_32800.log"))
+    # lines = readlines(string(dataset, "2018-03-01_12-58-22_32800.log"))
     # lines = readlines(string(dataset, "2018-03-01_15-11-18_51750.log"))
     # lines = readlines(string(dataset, "2017-11-28_08-08-42_129250.log"))
     # lines = readlines(string(dataset, "2017-12-01_09-02-55_9081.log"))
     # lines = readlines(string(dataset, "2018-03-01_15-07-59_7296.log"))
 
-    replacements = [
+    replacements::Array{Tuple{Regex,String}} = [
         # RCE datetime format
         (r"^\d{4,4}\-\d{2,2}\-\d{2,2}\ \d{2,2}\:\d{2,2}\:\d{2,2}\,\d{3,3}","timestamp"),
         # syslog datetime format
@@ -60,6 +61,7 @@ const dataset = string(basedir, "/data/datasets/RCE/")
         # splitby = r"[^\wäÄöÖüÜ&\.\:\,\;\\\/\-\_\'\%]+",
         #  [\=\(\)\{\}\[\]\\\/\:\;\'\`\"]|
         splitby = r"\s+|[\.\,](?!\d)|[^\w\p{L}\-\_\.\,]",
+        # splitby = r"\s+",
         replacements = replacements)
 
     vocabulary = collect(keys(wordcount))
@@ -93,8 +95,8 @@ Xs, Ys = deepcopy(input[1:end-1]), deepcopy(input[2:end])
 # 7235 (++++++)
 # 8041 (+++)
 
-# seed = rand(1:10000)
-seed = 7235
+seed = rand(1:10000)
+# seed = 7235
 
 srand(seed)
 S = length(input)
@@ -106,33 +108,51 @@ Epochs = 2
 # truncate = false
 @show length(lines), S, V, N, L, k, Epochs, seed
 
-prefix = string(cwd, S, "S_", V, "V_", N, "N_", L, "L_", k, "k_", seed, "seed_", Epochs, "E") #_", truncate, "truncate")
+activate = tanh
 
-writecsv("$prefix\_tokenized.csv", tokenized)
-writecsv("$prefix\_wordcount.csv", wordcount)
-
-act_fn = tanh
+nf = 10
 
 m = Chain(
     # KCompetetive(N, 100, tanh, k=k),
     # KCompetetive(100, 50, tanh, k=k),
-    Dense(N, 10, act_fn),
-    Dropout(0.05),
-    Dense(10, 5, act_fn),
-    Dropout(0.05),
-    KCompetetive(5, L, tanh, k=k),
+    Dense(N, 10*nf, activate),
+    # Dropout(0.1),
+    Dense(10*nf, 5*nf, activate),
+    # Dropout(0.1),
+    KCompetetive(5*nf, L, activate, k=k),
     # KCompetetive(L, 50, tanh, k=k),
     # KCompetetive(50, 100, tanh, k=k),
-    Dense(L, 5, act_fn),
-    Dense(5, 10, act_fn),
-    Dense(10, N, sigmoid))
+    Dense(L, 5*nf, activate),
+    Dense(5*nf, 10*nf, activate),
+    Dense(10*nf, N, sigmoid))
+
+embedded_layer = 3
+
+# function take2or1(s)
+#     f = string(Iterators.take(s, 4)...)
+#     l = reverse(string(Iterators.take(reverse(s), 4)...))
+#     if f == l
+#         return string(f)
+#     else
+#         return string(f,l)
+#     end
+# end
+
+arch = string(filter(!isempty, split(string(m), r"\s+|[\,\(\)\{\}]"))...)
+
+prefix = string(cwd, S, "S_", V, "V_", N, "N_", L, "L_", k, "k_", seed, "seed_", Epochs, "E", arch, "arch_") #_", truncate, "truncate")
+
+writecsv("$prefix\_tokenized.csv", tokenized)
+writecsv("$prefix\_wordcount.csv", wordcount)
+
 
 # testmode!(m, false)
-assert(m[1].active == true)
+assert(m[embedded_layer].active == true)
 
 function loss(xs, ys)
     # @show typeof(xs), typeof(ys)
     l = crossentropy(m(xs), ys)
+    # l = mse(m(xs), ys)
     # @show typeof(l), l
     # if truncate
     #     # Flux.truncate!(m)
@@ -160,11 +180,13 @@ opt = Flux.ADADelta(params(m))
 end
 
 
+# 
+# Testing
+# 
+
 testmode!(m)
-m[1].active = false
-m[2].active = false
-m[3].active = false
-assert(m[1].active == false)
+m[embedded_layer].active = false
+assert(m[embedded_layer].active == false)
 # initW = (out,in) -> deepcopy(m[1].W.data)
 # initb = (out) -> deepcopy(m[1].b.data)
 # d = Dense(N,L,tanh,initW=initW,initb=initb)
@@ -178,7 +200,7 @@ cluster = zeros(Float64, S,L)
 
 for s = 1:S
     # embedded = m[1](input[s]).data
-    embedded = m[5](m[4](m[3](m[2](m[1](input[s]))))).data
+    embedded = m[1:embedded_layer](input[s]).data
     if s < 10
         @show embedded
     end
