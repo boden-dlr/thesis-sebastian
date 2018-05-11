@@ -3,10 +3,9 @@ using LogClustering.Validation
 
 # http://swl.htwsaar.de/lehre/ss17/ml/slides/2017-vl-ml-ch4-1-clustering.pdf
 function naive_intra_cluster_weights(C::Clustering)
-    as = collect(C.assignments)
     W_in = 0.0
     N_in = 0
-    for (i,c) in as
+    for (i,c) in enumerate(C)
         W_in += weights(c,c)
         N_in += length(c) * (length(c)-1)
     end
@@ -15,11 +14,10 @@ end
 
 # http://swl.htwsaar.de/lehre/ss17/ml/slides/2017-vl-ml-ch4-1-clustering.pdf
 function naive_inter_cluster_weights(C::Clustering)
-    as = collect(C.assignments)
     W_out = 0.0
     N_out = 0
-    for (i,S) in as
-        for (j,R) in as
+    for (i,S) in enumerate(C)
+        for (j,R) in enumerate(C)
             if i != j
                 W_out += weights(S,R)
                 N_out += length(S) * length(R)
@@ -29,25 +27,11 @@ function naive_inter_cluster_weights(C::Clustering)
     0.5 * W_out, convert(Int64, 0.5 * N_out)
 end
 
-# https://www.oursera.org/learn/cluster-analysis/lecture/jDuBD/6-7-internal-measures-for-clustering-validation
-# This is wrong!
-# function naive_n_out(C::Clustering)
-#     as = collect(C.assignments)
-#     N_out = 0
-#     for (i, S) in as[1:C.k-1]
-#         for (j, R) in as[i+1:end]
-#             N_out += length(S) * length(R)
-#         end
-#     end
-#     N_out
-# end
-
 # http://swl.htwsaar.de/lehre/ss17/ml/slides/2017-vl-ml-ch4-1-clustering.pdf
 function naive_n_out(C::Clustering)
-    as = collect(C.assignments)
     N_out = 0
-    for (i, S) in as
-        for (j, R) in as
+    for (i, S) in enumerate(C)
+        for (j, R) in enumerate(C)
             if i != j
                 N_out += length(S) * length(R)
             end
@@ -57,19 +41,26 @@ function naive_n_out(C::Clustering)
 end
 
 
-
 @testset "naive vs optimized" begin
 
-    low_betacv = Dict(
-        1 => [[1.0, 1.0], [1.1, 1.1]],
-        2 => [[2.0, 2.0], [2.1, 2.1]],
-        3 => [[3.0, 3.0], [3.1, 3.1]],
-        4 => [[4.0, 4.0], [4.1, 4.1]],
-        5 => [[5.0, 5.0], [5.1, 5.1]],
-        6 => [[6.0, 6.0], [6.1, 6.1]],
-    )
+    # using Clustering
+    # low_betacv = [
+    #     1.0  1.1  2.0  2.1  3.0  3.1  4.0  4.1  5.0  5.1  6.0  6.1;
+    #     1.0  1.1  2.0  2.1  3.0  3.1  4.0  4.1  5.0  5.1  6.0  6.1;
+    # ]
+    # DM = pairwise(Euclidean(), low, low)
+    # C = dbscan(DM, 0.15, 2)
+    # ... view(data assignments)
 
-    C = Clustering(length(low_betacv), low_betacv)
+    # low BetaCV
+    C = [
+        [[1.0, 1.0], [1.1, 1.1]], # 1
+        [[2.0, 2.0], [2.1, 2.1]], # 2
+        [[3.0, 3.0], [3.1, 3.1]], # 3
+        [[4.0, 4.0], [4.1, 4.1]], # 4
+        [[5.0, 5.0], [5.1, 5.1]], # 5
+        [[6.0, 6.0], [6.1, 6.1]], # 6
+    ]
 
     # intra
     expected = naive_intra_cluster_weights(C)
@@ -88,16 +79,15 @@ end
     @test betacv(C) ≈ 0.0428571428571428
     @test betacv(C) < (1.4681892332789561 / 10)
 
-    high_betacv = Dict(
-        1 => [[1.0, 1.0], [6.1, 6.1]],
-        2 => [[2.0, 2.0], [5.1, 5.1]],
-        3 => [[3.0, 3.0], [4.1, 4.1]],
-        4 => [[4.0, 4.0], [3.1, 3.1]],
-        5 => [[5.0, 5.0], [2.1, 2.1]],
-        6 => [[6.0, 6.0], [1.1, 1.1]],
-    )
-
-    C = Clustering(length(high_betacv), high_betacv)
+    # high BetaCV
+    C = [
+        [[1.0, 1.0], [6.1, 6.1]], # 1
+        [[2.0, 2.0], [5.1, 5.1]], # 2
+        [[3.0, 3.0], [4.1, 4.1]], # 3
+        [[4.0, 4.0], [3.1, 3.1]], # 4
+        [[5.0, 5.0], [2.1, 2.1]], # 5
+        [[6.0, 6.0], [1.1, 1.1]], # 6
+    ]
 
     @test betacv(C) > (0.0428571428571428 * 10)
     @test betacv(C) ≈ 1.4681892332789561

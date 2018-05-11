@@ -1,13 +1,7 @@
-# using Clustering
 using Distances
-# using Flux: crossentropy
 
-abstract type AbstractClustering end
-
-struct Clustering{A,B} <: AbstractClustering
-    k::Int64
-    assignments::Dict{A,Array{B,1}}
-end
+Data{T<:Real} = Array{Array{T,1},1}
+Clustering{T<:Real} = Array{Data{T},1}
 
 function weights(S::AbstractArray, R::AbstractArray, metric::Function = Distances.euclidean)
     ws = 0.0
@@ -18,6 +12,13 @@ function weights(S::AbstractArray, R::AbstractArray, metric::Function = Distance
     end
     ws
 end
+
+
+function weights_colwise(S::AbstractArray, R::AbstractArray, metric::Distances.PreMetric = Distances.Euclidean())
+    ws = Distances.colwise(metric, S, R)
+    sum(ws)
+end
+
 
 function weights_half(S::AbstractArray, R::AbstractArray, metric::Function = Distances.euclidean)
     ws = 0.0
@@ -31,26 +32,24 @@ function weights_half(S::AbstractArray, R::AbstractArray, metric::Function = Dis
     ws
 end
 
+
 # https://www.coursera.org/learn/cluster-analysis/lecture/jDuBD/6-7-internal-measures-for-clustering-validation
-function intra_cluster_weights(C::AbstractClustering)
-    k = C.k
-    assignments = collect(C.assignments)
+function intra_cluster_weights(C::Clustering)
     W_in = 0.0
     N_in = 0
-    for (i,S) in assignments[1:k]
+    for (i,S) in enumerate(C)
         W_in += weights_half(S,S)
         N_in += binomial(length(S),2)
     end
     W_in, N_in
 end
 
-function inter_cluster_weights(C::AbstractClustering)
-    k = C.k
-    assignments = collect(C.assignments)
+
+function inter_cluster_weights(C::Clustering)
     W_out = 0.0
     N_out = 0
-    for (i,S) in assignments #[1:k-1]
-        for (j,R) in assignments #[i+1:k]
+    for (i,S) in enumerate(C)
+        for (j,R) in enumerate(C)
             if j > i
                 W_out += weights(S,R)
                 N_out += length(S) * length(R)
@@ -60,7 +59,8 @@ function inter_cluster_weights(C::AbstractClustering)
     W_out, N_out
 end
 
-function betacv(C::AbstractClustering)
+
+function betacv(C::Clustering)
     W_in, N_in = intra_cluster_weights(C)
     W_out, N_out = inter_cluster_weights(C)
     
