@@ -5,12 +5,15 @@ using LogClustering.NLP, LogClustering.KATE
 using LogClustering.KATE: KCompetetive
 
 using Flux
-using Flux: throttle, crossentropy, mse, testmode! #, binarycrossentropy
+using Flux: throttle, crossentropy, mse, testmode!, data #, binarycrossentropy
 using NNlib: relu, leakyrelu
 using Juno: @progress
 using Plots
 gr()
-
+using NearestNeighbors
+using LogClustering.Validation
+using LogClustering.Validation: Clustering
+using Distances
 # using Rsvg
 # plotlyjs()
 
@@ -33,10 +36,10 @@ const dataset = string(basedir, "/data/datasets/RCE/")
 
 @memoize function generate_input()
 
-    lines = vcat(map(
-        (log) -> readlines(string(dataset, log)),
-        take(string(dataset), 10)
-    )...)
+    # lines = vcat(map(
+    #     (log) -> readlines(string(dataset, log)),
+    #     take(string(dataset), 10)
+    # )...)
 
         # readlines(string(base, "/data/logs/", "2014-12-02_10-45-57_922.log")),
         # readlines(string(base, "/data/logs/", "2016-06-08_17-12-52_6852.log")),
@@ -45,7 +48,7 @@ const dataset = string(basedir, "/data/datasets/RCE/")
     # lines = readlines(string(dataset, "2018-03-01_15-11-18_51750.log"))
     # lines = readlines(string(dataset, "2017-11-28_08-08-42_129250.log"))
     # lines = readlines(string(dataset, "2017-12-01_09-02-55_9081.log"))
-    # lines = readlines(string(dataset, "2018-03-01_15-07-59_7296.log"))
+    lines = readlines(string(dataset, "2018-03-01_15-07-59_7296.log"))
 
     replacements::Array{Tuple{Regex,String}} = [
         # RCE datetime format
@@ -94,6 +97,7 @@ Xs, Ys = deepcopy(input[1:end-1]), deepcopy(input[2:end])
 # 2841 (++++)
 # 7235 (++++++)
 # 8041 (+++)
+# 3064 (++++++)
 
 seed = rand(1:10000)
 # seed = 7235
@@ -108,9 +112,11 @@ Epochs = 2
 # truncate = false
 @show length(lines), S, V, N, L, k, Epochs, seed
 
+# activate = x -> cos(exp(x))
+activate = x -> tanh(cos(x))
 activate = tanh
 
-nf = 10
+nf = 1
 
 m = Chain(
     # KCompetetive(N, 100, tanh, k=k),
@@ -118,15 +124,21 @@ m = Chain(
     Dense(N, 10*nf, activate),
     # Dropout(0.1),
     Dense(10*nf, 5*nf, activate),
+
+    Dense(5*nf, 10*nf, activate),
+    Dense(10*nf, 5*nf, activate),
     # Dropout(0.1),
-    KCompetetive(5*nf, L, activate, k=k),
+    KCompetetive(5*nf, L, tanh, k=k),
+    # Dense(5*nf, L, activate),
     # KCompetetive(L, 50, tanh, k=k),
     # KCompetetive(50, 100, tanh, k=k),
     Dense(L, 5*nf, activate),
     Dense(5*nf, 10*nf, activate),
+    Dense(10*nf, 5*nf, activate),
+    Dense(5*nf, 10*nf, activate),
     Dense(10*nf, N, sigmoid))
 
-embedded_layer = 3
+embedded_layer = 5
 
 # function take2or1(s)
 #     f = string(Iterators.take(s, 4)...)
@@ -138,10 +150,11 @@ embedded_layer = 3
 #     end
 # end
 
-arch = string(filter(!isempty, split(string(m), r"\s+|[\,\(\)\{\}]"))...)
+arch = string(filter(!isempty, split(string(m), r"\s+|[\,\(\)\{\}]"))...)[1:120]
 
 prefix = string(cwd, S, "S_", V, "V_", N, "N_", L, "L_", k, "k_", seed, "seed_", Epochs, "E", arch, "arch_") #_", truncate, "truncate")
 
+writecsv("$prefix\_input.csv", input)
 writecsv("$prefix\_tokenized.csv", tokenized)
 writecsv("$prefix\_wordcount.csv", wordcount)
 
@@ -149,16 +162,100 @@ writecsv("$prefix\_wordcount.csv", wordcount)
 # testmode!(m, false)
 assert(m[embedded_layer].active == true)
 
+global count = 0
+global bcv = 0.0
+
 function loss(xs, ys)
+    l = 0.0
+
+    global count += 1
+    # if count == 10
+    if count == length(Xs)
+    # if count == round(Int64,0.13*length(Xs))
+        count = 0
+
+        # testmode!(m)
+        # m[embedded_layer].active = false
+        embedded_p = map(x->m[1:embedded_layer](x), Xs)
+
+        # global bcv = @show sum((embedded_p[1] .- embedded_p[2]).^2)
+        
+        # @show embedded_p
+        # @show size(embedded_p), typeof(embedded_p)
+        # m[embedded_layer].active = true
+        # testmode!(m, false)
+
+        embedded = map(ta->ta.data, embedded_p)
+        embedded = hcat(embedded...)
+        # @show size(embedded_p), typeof(embedded_p)
+        
+        # @show embedded
+        # @show size(embedded), typeof(embedded), embedded[:,1]
+        balltree = BallTree(embedded)
+        k = 10
+        n = size(embedded)[2]
+        # @show n, k
+        # rand_rng = rand(1:n, round(Int64, 0.33 * n))
+        # @show length(rand_rng), typeof(rand_rng)
+        # centroids = hcat(map(r-> embedded[:,r], rand_rng)...)
+        centroids = hcat(map(r-> embedded[:,r], 1:n)...)
+        # @show size(centroids), typeof(centroids)
+        knnr = knn(balltree, centroids, k)
+        # @show typeof(knnr), length(knnr[1])
+
+        TA = typeof(embedded_p[1])
+
+        hard = Dict{Int64,Array{TA,1}}()
+        used = Vector{Int64}()
+        for (i, knn) in enumerate(knnr[1])
+            points = Vector{TA}()
+            for nn in knn
+                if !(nn in used)
+                    push!(used, nn)
+                    push!(points, embedded_p[nn])
+                end
+            end
+            hard[i] = points
+        end
+
+        for (key,val) in collect(hard)
+            if length(val) == 0
+                delete!(hard, key)
+            end
+        end
+
+        C_hard = Clustering(length(hard), hard)
+        # C_hard = Clustering(10, Dict(collect(hard)[1:10]))
+
+        # @show n, k
+        # @show length(hard), length(used)
+        # @show length(used) / n
+        # @show mean(map(length, values(hard)))
+        # @show median(map(length, values(hard)))
+        # @show minimum(map(length, values(hard)))
+        # @show maximum(map(length, values(hard)))
+
+        # global bcv = @show betacv(C_hard)
+        # Flux.truncate!(m)
+        # Flux.reset!(m)
+    end
+
+    # testmode!(m, false)
     # @show typeof(xs), typeof(ys)
     l = crossentropy(m(xs), ys)
     # l = mse(m(xs), ys)
     # @show typeof(l), l
     # if truncate
-    #     # Flux.truncate!(m)
-    #     # Flux.reset!(m)
+    # Flux.truncate!(m)
+    # Flux.reset!(m)
     # end
-    return l
+    # if bcv == 0.0
+    #     return l
+    # else
+    #     # return l*(bcv/l) + bcv
+    #     return l + bcv
+    # end
+    return l + bcv
 end
 
 training = Vector{Float64}()
@@ -168,7 +265,8 @@ function evaluation_callback()
     push!(training, l.tracker.data)
 end
 
-opt = Flux.ADADelta(params(m))
+# opt = Flux.ADADelta(params(m))
+opt = Flux.ADAM(params(m))
 
 @progress for e = 1:Epochs
     info("Epoch $e")
