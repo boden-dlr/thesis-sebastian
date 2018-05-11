@@ -12,8 +12,8 @@ gr()
 
 # Data & Transformation
 
-# file = "/home/sebastian/develop/topic/clustering/LogClustering.jl/data/datasets/RCE/2014-12-02_08-58-09_1048.log"
-file = "/home/sebastian/develop/topic/clustering/LogClustering.jl/data/datasets/RCE/2018-03-01_15-11-18_51750.log"
+file = "/home/sebastian/develop/topic/clustering/LogClustering.jl/data/datasets/RCE/2014-12-02_08-58-09_1048.log"
+# file = "/home/sebastian/develop/topic/clustering/LogClustering.jl/data/datasets/RCE/2018-03-01_15-11-18_51750.log"
 # file = "/home/sebastian/develop/topic/clustering/LogClustering.jl/data/datasets/test/short.txt"
 
 text = collect(readstring(file))
@@ -95,7 +95,8 @@ m = Chain(
     # Dense(128, N),
     softmax) |> gpu
 
-arch = string(m[1].join, ", ", string(m[2:end]))
+# arch = string(m[1].join, ", ", string(m[2:end]))
+arch = string(filter(!isempty, split(string(m[1].join, string(m[2:end])), r"\s+|[\,\(\)\{\}]"))...)
 
 function loss(xs, ys)
     # @show length(xs), length(xs[1])
