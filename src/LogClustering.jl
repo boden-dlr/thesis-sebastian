@@ -10,5 +10,6 @@ module LogClustering
     include("Log.jl")
     include("KATE.jl")
     include("Sparse.jl")
+    include("validation/Validation.jl")
 
 end # module
