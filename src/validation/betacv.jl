@@ -1,7 +1,5 @@
 using Distances
 
-Data{T<:Real} = Array{Array{T,1},1}
-Clustering{T<:Real} = Array{Data{T},1}
 
 function weights(S::AbstractArray, R::AbstractArray, metric::Function = Distances.euclidean)
     ws = 0.0
@@ -34,7 +32,7 @@ end
 
 
 # https://www.coursera.org/learn/cluster-analysis/lecture/jDuBD/6-7-internal-measures-for-clustering-validation
-function intra_cluster_weights(C::Clustering)
+function intra_cluster_weights(C::AbstractArray)
     W_in = 0.0
     N_in = 0
     for (i,S) in enumerate(C)
@@ -45,7 +43,7 @@ function intra_cluster_weights(C::Clustering)
 end
 
 
-function inter_cluster_weights(C::Clustering)
+function inter_cluster_weights(C::AbstractArray)
     W_out = 0.0
     N_out = 0
     for (i,S) in enumerate(C)
@@ -60,7 +58,7 @@ function inter_cluster_weights(C::Clustering)
 end
 
 
-function betacv(C::Clustering)
+function betacv(C::AbstractArray)
     W_in, N_in = intra_cluster_weights(C)
     W_out, N_out = inter_cluster_weights(C)
     
