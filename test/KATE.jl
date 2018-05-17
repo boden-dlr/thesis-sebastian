@@ -12,7 +12,7 @@ using Plots
 gr()
 using NearestNeighbors
 using LogClustering.Validation
-using LogClustering.Validation: Clustering
+using LogClustering.Clustering
 using Distances
 # using Rsvg
 # plotlyjs()
@@ -98,9 +98,10 @@ Xs, Ys = deepcopy(input[1:end-1]), deepcopy(input[2:end])
 # 7235 (++++++)
 # 8041 (+++)
 # 3064 (++++++)
+# 9123 (++++++)
 
-seed = rand(1:10000)
-# seed = 7235
+# seed = rand(1:10000)
+seed = 9123
 
 srand(seed)
 S = length(input)
@@ -108,7 +109,7 @@ V = length(vocabulary)
 N = convert(Int64, length(input[1]))
 L = 2
 k = 2
-Epochs = 2
+Epochs = 1
 # truncate = false
 @show length(lines), S, V, N, L, k, Epochs, seed
 
@@ -162,106 +163,74 @@ writecsv("$prefix\_wordcount.csv", wordcount)
 # testmode!(m, false)
 assert(m[embedded_layer].active == true)
 
-global count = 0
-global bcv = 0.0
+global counter = 0
+global bcv = param(0.0)
+
+function bcv_grad(m, Xs)
+    m, Xs = deepcopy(m), deepcopy(Xs)
+    Flux.reset!(m)
+    embedded_p = map(x->m[1:embedded_layer](x), Xs)
+    es_grad = map(es->map(e->e.tracker.grad,es),embedded_p[1:3])
+    @show es_grad
+    # @show typeof(embedded_p), embedded_p[1:3]
+    embedded = map(ta->ta.data, embedded_p)
+    embedded = hcat(embedded...)
+    # @show typeof(embedded)
+    @show embedded[:,1:3]
+    C, U = knn_clustering(embedded, k=25, metric = Minkowski(2.0))
+    # @show typeof(C)
+    @show length(C), length(C[1])
+    @show mean(map(length, values(C)))
+    @show median(map(length, values(C)))
+    # @show U
+    @show typeof(U), length(U), length(U)/length(Xs)
+
+    Vps = map(c->map(i->embedded_p[i],c),C)
+    # @show typeof(Vps)
+    @show length(Vps), length(Vps[1]), length(Vps[end])
+    bcv = betacv(Vps)
+    # es_grad = map(es->map(e->e.tracker.grad,es),embedded_p[1:3])
+    # @show es_grad
+    # # @show bcv
+    # # Flux.back!(bcv)
+
+    # Vs = map(c->map(i->embedded[:,i],c),C)
+    # # @show typeof(Vs), length(Vs), length(Vs[1])
+    # bcv = betacv(Vs)
+    # # @show bcv
+
+    Flux.truncate!(m)
+    # # Flux.reset!(m)
+    bcv
+end
 
 function loss(xs, ys)
-    l = 0.0
+    global bcv
 
-    global count += 1
-    # if count == 10
-    if count == length(Xs)
-    # if count == round(Int64,0.13*length(Xs))
-        count = 0
-
-        # testmode!(m)
-        # m[embedded_layer].active = false
-        embedded_p = map(x->m[1:embedded_layer](x), Xs)
-
-        # global bcv = @show sum((embedded_p[1] .- embedded_p[2]).^2)
-        
-        # @show embedded_p
-        # @show size(embedded_p), typeof(embedded_p)
-        # m[embedded_layer].active = true
-        # testmode!(m, false)
-
-        embedded = map(ta->ta.data, embedded_p)
-        embedded = hcat(embedded...)
-        # @show size(embedded_p), typeof(embedded_p)
-        
-        # @show embedded
-        # @show size(embedded), typeof(embedded), embedded[:,1]
-        balltree = BallTree(embedded)
-        k = 10
-        n = size(embedded)[2]
-        # @show n, k
-        # rand_rng = rand(1:n, round(Int64, 0.33 * n))
-        # @show length(rand_rng), typeof(rand_rng)
-        # centroids = hcat(map(r-> embedded[:,r], rand_rng)...)
-        centroids = hcat(map(r-> embedded[:,r], 1:n)...)
-        # @show size(centroids), typeof(centroids)
-        knnr = knn(balltree, centroids, k)
-        # @show typeof(knnr), length(knnr[1])
-
-        TA = typeof(embedded_p[1])
-
-        hard = Dict{Int64,Array{TA,1}}()
-        used = Vector{Int64}()
-        for (i, knn) in enumerate(knnr[1])
-            points = Vector{TA}()
-            for nn in knn
-                if !(nn in used)
-                    push!(used, nn)
-                    push!(points, embedded_p[nn])
-                end
-            end
-            hard[i] = points
-        end
-
-        for (key,val) in collect(hard)
-            if length(val) == 0
-                delete!(hard, key)
-            end
-        end
-
-        C_hard = Clustering(length(hard), hard)
-        # C_hard = Clustering(10, Dict(collect(hard)[1:10]))
-
-        # @show n, k
-        # @show length(hard), length(used)
-        # @show length(used) / n
-        # @show mean(map(length, values(hard)))
-        # @show median(map(length, values(hard)))
-        # @show minimum(map(length, values(hard)))
-        # @show maximum(map(length, values(hard)))
-
-        # global bcv = @show betacv(C_hard)
-        # Flux.truncate!(m)
-        # Flux.reset!(m)
-    end
-
-    # testmode!(m, false)
-    # @show typeof(xs), typeof(ys)
     l = crossentropy(m(xs), ys)
-    # l = mse(m(xs), ys)
-    # @show typeof(l), l
-    # if truncate
-    # Flux.truncate!(m)
+
+    global counter += 1
+    # if counter == 10
+    # if counter >= length(Xs)
+    if counter == round(Int64, 0.5*(S-1))
+        global counter = 0 # reset
+        bcv = bcv_grad(m, Xs)
+
+        println("l:     ", l)
+        println("bcv:   ", bcv)
+        println("l+bcv: ", l+bcv)
+    end
+    
+    Flux.truncate!(m)
     # Flux.reset!(m)
-    # end
-    # if bcv == 0.0
-    #     return l
-    # else
-    #     # return l*(bcv/l) + bcv
-    #     return l + bcv
-    # end
+    
     return l + bcv
 end
 
 training = Vector{Float64}()
 function evaluation_callback()
     l = loss(Xs[5], Ys[5])
-    @show l
+    println("loss:  ", l)
     push!(training, l.tracker.data)
 end
 
@@ -322,6 +291,11 @@ writecsv("$prefix\_embedded_KATE.csv", cluster)
 
 @show tokenized[maxIdx]
 @show tokenized[minIdx]
+
+C, U = knn_clustering(cluster', k=25, metric = Minkowski(2.0))
+Vs = map(c->map(i->cluster'[:,i],c),C)
+println("bcv (old): ", bcv)
+println("bcv (new): ", betacv(Vs))
 
 # p1 = plot(training, label=["loss"])
 # savefig(p1,"loss_$Epochs.png")
