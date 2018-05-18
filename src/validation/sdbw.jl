@@ -38,33 +38,37 @@ function variance(X::AbstractArray, mean::AbstractArray)
     vs ./ n
 end
 
-function sqrt_norm(xs)
+
+function sqrt_norm(xs::AbstractArray)
     sqrt(xs'*xs)
 end
 
-function medoid(C_i::AbstractArray)
-    cost = Distances.pairwise(Euclidean(), C_i, C_i)
+
+function medoid(X::AbstractArray)
+    cost = Distances.pairwise(Euclidean(), X, X)
     mr = Clustering.kmedoids(cost,1)
     medoid_idx = mr.medoids[1]
-    C_i[:,medoid_idx]
+    X[:,medoid_idx]
 end
 
-function scattering(D::AbstractArray, C::AbstractArray)
+
+function scattering(D::AbstractArray, C::AbstractArray, DC::AbstractArray)
     d,n = size(D)
     nc = length(C)
     stdD = sqrt_norm(variance(D, [mean(D[p,:]) for p in 1:d]))
     scat = 0.0
     for i in 1:nc
-        scat += sqrt_norm(variance(C[i], medoid(C[i]))) / stdD
+        scat += sqrt_norm(variance(DC[i], medoid(DC[i]))) / stdD
     end
     scat / n
 end
 
-function avg_std(C::AbstractArray)
-    nc = length(C)
+
+function avg_std(DC::AbstractArray)
+    nc = length(DC)
     std = 0.0
     for i in nc
-        std += sqrt_norm(variance(C[i], medoid(C[i])))
+        std += sqrt_norm(variance(DC[i], medoid(DC[i])))
     end
     sqrt(std) / nc
 end
@@ -82,22 +86,23 @@ function density(X::AbstractArray, point::AbstractArray, radius::Float64)
     count
 end
 
-function dense_bw(C::AbstractArray)
+
+function dense_bw(D::AbstractArray, C::AbstractArray, DC::AbstractArray)
     nc = length(C)
-    stdC = avg_std(C)
+    stdC = avg_std(DC)
     sum = 0.0
     for i in 1:nc
         for j in 1:nc
             if i != j
-                v_i  = medoid(C[i]) 
-                v_j  = medoid(C[j])
+                v_i  = medoid(DC[i]) 
+                v_j  = medoid(DC[j])
                 from = min.(v_i,v_j)
                 u_ij = from .+ (0.5 .* Distances.euclidean.(v_i, v_j))
                 
-                # NOTE: maybe for the whole dataset?! `D` instead of `C[i]`?
-                d_v_i  = density(C[i], v_i,  stdC)
-                d_v_j  = density(C[i], v_j,  stdC)
-                d_u_ij = density(C[i], u_ij, stdC)
+                DC_ij  = view(D,:,union(C[i],C[j]))
+                d_v_i  = density(DC_ij, v_i,  stdC)
+                d_v_j  = density(DC_ij, v_j,  stdC)
+                d_u_ij = density(DC_ij, u_ij, stdC)
 
                 sum += d_u_ij / max(d_v_i, d_v_j)
             end
@@ -106,6 +111,11 @@ function dense_bw(C::AbstractArray)
     sum / nc*(nc-1)
 end
 
+
 function sdbw(D::AbstractArray, C::AbstractArray)
-    scattering(D,C) + dense_bw(C)
+    DC = [view(D,:,c) for c in C]
+    s = scattering(D,C,DC)
+    d = dense_bw(D,C,DC)
+    @show s, d
+    s + d
 end

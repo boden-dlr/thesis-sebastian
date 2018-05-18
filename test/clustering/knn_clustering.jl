@@ -75,4 +75,10 @@ end
     @show bcv
     @test bcv > 0.7
     @test bcv < 0.8
+
+    sd = @time sdbw(data, C)
+    @show sd
+    @test sd > 0.010
+    @test sd < 0.015
+
 end
