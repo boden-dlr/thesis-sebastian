@@ -9,11 +9,17 @@ struct Dataset
     directory::String
 end
 
-function extract(dataset::Dataset)
-    files = glob(dataset.files, dataset.directory)
-    data = Vector{Array{String,1}}()
-    for file in files
-        push!(data, readlines(file))
+function extract(dataset::Dataset; handle=readlines, take::Integer=-1)
+    if take == -1
+        files = glob(dataset.files, dataset.directory)
+    else
+        files = glob(dataset.files, dataset.directory)[1:take]
+    end
+    first = handle(files[1])
+    data = Vector{typeof(first)}()
+    push!(data, first)
+    for i in 2:length(files)
+        push!(data, handle(files[i]))
     end
     data
 end
