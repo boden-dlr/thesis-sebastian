@@ -1,5 +1,5 @@
 using Base.Test
-using LogClustering.Validation
+using FluxMO.Validation
 
 # http://swl.htwsaar.de/lehre/ss17/ml/slides/2017-vl-ml-ch4-1-clustering.pdf
 function naive_intra_cluster_weights(C::AbstractArray)
@@ -50,16 +50,7 @@ function naive_n_out(C::AbstractArray)
 end
 
 
-@testset "naive vs optimized" begin
-
-    # using Clustering
-    # low_betacv = [
-    #     1.0  1.1  2.0  2.1  3.0  3.1  4.0  4.1  5.0  5.1  6.0  6.1;
-    #     1.0  1.1  2.0  2.1  3.0  3.1  4.0  4.1  5.0  5.1  6.0  6.1;
-    # ]
-    # DM = pairwise(Euclidean(), low, low)
-    # C = dbscan(DM, 0.15, 2)
-    # ... view(data assignments)
+@testset "naive vs optimized for loops" begin
 
     # low BetaCV
     C = [
@@ -83,12 +74,20 @@ end
     expected = naive_inter_cluster_weights(C)    
     result   = inter_cluster_weights(C)
     @test expected[1] ≈ result[1]
-    @test expected[2] ≈ result[2]
+    @test expected[1] ≈ 197.98989873223329
+    @test expected[2] == result[2]
+    @test expected[2] == 60
     @test naive_n_out(C) == 60
-    @test naive_n_out(C) == result[2]
 
     @test betacv(C) ≈ 0.0428571428571428
-    @test betacv(C) < (1.4681892332789561 / 10)
+    for _ in 1:10
+        @time betacv(C)
+    end
+
+    @test betacv_fused(C) ≈ 0.0428571428571428
+    for _ in 1:10
+        @time betacv_fused(C)
+    end
 
     # high BetaCV
     C = [
@@ -100,13 +99,13 @@ end
         [[6.0, 6.0], [1.1, 1.1]], # 6
     ]
 
-    @test betacv(C) > (0.0428571428571428 * 10)
     @test betacv(C) ≈ 1.4681892332789561
+    #               > 0.0428571428571428
 
 end
 
 
-@testset "Flux.Tracker: betacv (tracked)" begin
+@testset "tracked betacv with for loops" begin
     using Flux.Tracker
 
     C = [
@@ -122,17 +121,27 @@ end
     expected = naive_intra_cluster_weights(C)
     result   = intra_cluster_weights(C)
     @test expected[1] ≈ result[1]
-    @test expected[2] ≈ result[2]
+    @test expected[1].tracker.data ≈ 0.8485281374238982
+    @test expected[2] == result[2]
+    @test expected[2] == 6
     
     # inter
     expected = naive_inter_cluster_weights(C)
     result   = inter_cluster_weights(C)
     @test expected[1] ≈ result[1]
-    @test expected[2] ≈ result[2]
+    @test expected[1] ≈ 197.98989873223329
+    @test expected[2] == result[2]
+    @test expected[2] == 60
     @test naive_n_out(C) == 60
-    @test naive_n_out(C) == result[2]
 
-    @test betacv(C) ≈ 0.0428571428571428
+    @test betacv(C).tracker.data ≈ 0.0428571428571428
+    for _ in 1:10
+        @time betacv(C)
+    end
+    @test betacv_fused(C).tracker.data ≈ 0.0428571428571428
+    for _ in 1:10
+        @time betacv_fused(C)
+    end
 
     C[1][1].grad ≈ [0.0, 0.0]
 
@@ -140,93 +149,69 @@ end
 
     @test C[1][1].grad[1] ≈ -0.034183673469387735
     @test C[1][1].grad[2] ≈ -0.034183673469387735
+    @test C[1][2].grad[1] ≈ 0.03724489795918369
+    @test C[1][2].grad[2] ≈ 0.03724489795918369
 
 end
 
-# @testset "Deep-Autoencoder with Crossentropy and BetaCV loss" begin
-using Flux
-using Flux.Tracker
-using Flux: softmax, relu, leakyrelu, mse, crossentropy, throttle
-using Flux: normalise
-using LogClustering.Clustering: knn_clustering
-using LogClustering.Validation: betacv
 
-function train(seed::Int)
-    srand(seed)
+@testset "tracked betacv with distance-matrices" begin
+    using Flux.Tracker
 
-    N = 10000   # samples
-    M = 100     # data size
-    L = 2       # latent space
+    C = [
+        [1.0 1.1; 1.0 1.1], # 1
+        [2.0 2.1; 2.0 2.1], # 2
+        [3.0 3.1; 3.0 3.1], # 3
+        [4.0 4.1; 4.0 4.1], # 4
+        [5.0 5.1; 5.0 5.1], # 5
+        [6.0 6.1; 6.0 6.1], # 6
+    ]
+    @test typeof(C[1]) == Array{Float64,2}
 
-    D = map(_->rand(M),1:N)
-    X = deepcopy(D[1:end-1])
-    Y = deepcopy(D[2:end])
+    C_tracked = [
+        [param(1.0) param(1.1); param(1.0) param(1.1)], # 1
+        [param(2.0) param(2.1); param(2.0) param(2.1)], # 2
+        [param(3.0) param(3.1); param(3.0) param(3.1)], # 3
+        [param(4.0) param(4.1); param(4.0) param(4.1)], # 4
+        [param(5.0) param(5.1); param(5.0) param(5.1)], # 5
+        [param(6.0) param(6.1); param(6.0) param(6.1)], # 6
+    ]
+    @test typeof(C_tracked[1]) == Array{Flux.Tracker.TrackedReal{Float64},2}
 
-    a = tanh
-    m = Chain(
-        Dense(M,   100, a),
-        Dense(100, 10,  a),
-        Dense(10,  L,   a),
-        Dense(L,   10,  a),
-        Dense(10,  100, a),
-        Dense(100, M,   sigmoid),
-    )
-    el = 3
+    # intra
+    expected = intra_cluster_weights_pairwise(C)
+    result   = intra_cluster_weights_pairwise(C_tracked)
+    @test expected[1] ≈ result[1]
+    @test expected[1] ≈ 0.8485281374238982
+    @test expected[2] == result[2]
+    @test expected[2] == 6
+    
+    # inter
+    expected = inter_cluster_weights_pairwise(C)
+    result   = inter_cluster_weights_pairwise(C_tracked)
+    @test expected[1] ≈ result[1]
+    @test expected[1] ≈ 197.98989873223329
+    @test expected[2] == result[2]
+    @test expected[2] == 60
+    
+    @time expected = betacv_pairwise(C)
+    @time result = betacv_pairwise(C_tracked)
+    @test expected            ≈ 0.0428571428571428
+    @test result.tracker.data ≈ expected
 
-    function supervised_betacv()
-        # Embed all samples from X into the latent space of size L
-        embds_tracked = map(x-> m[1:el](x), X)
-        embds  = hcat(map(ta->ta.data, embds_tracked)...)
-        
-        # Cluster the current embeddings without tracking to generate
-        # a supervised scenario.
-        # This clould also be done by DBSCAN, OPTICS, K-Means ...
-        clustering, _ = knn_clustering(embds)
+    before = [t.tracker.grad for t in C_tracked[1]]
+    @test isapprox(before, [0.0 0.0; 0.0 0.0], atol=1e-20)
 
-        # Obtain tracked embedded values from the clustering
-        values_tracked = map(c->map(i->embds_tracked[i],c), clustering)
+    @time back!(betacv_pairwise(C_tracked))
+    after = [t.tracker.grad for t in C_tracked[1]]
+    @test isapprox(after,
+        [-0.034183673469387735 0.03724489795918369;
+         -0.034183673469387735 0.03724489795918369],
+        atol=1e-20)
 
-        # Validate the clustering via BetaCV measure (small is good).
-        # This is done the tracked values, as it should influence
-        # the model weights and biases towards optimizing this measure.
-        bcv = betacv(values_tracked)
+    # NOTE: it is not possible to compute the gradient
+    # 2×2 Array{Float64,2}:
+    # NaN  NaN
+    # NaN  NaN
 
-        bcv
-    end
-
-    function loss(x, y)
-        # unsupervised
-        ŷ = m(x)
-        ce = crossentropy(ŷ, y)
-
-        # supervised
-        bcv = 0.0
-        if false # apply after a certain amount of training
-            bcv = supervised_betacv()
-        end
-
-        # optimize both metrics
-        ce + bcv
-    end
-
-    opt = Flux.ADAM(params(m))
-
-    function callback()
-        ns = rand(1:N-1, round(Int, sqrt(N)))
-        ls = map(n->loss(X[n], Y[n]).tracker.data, ns)
-        println("Training:  loss: ", sum(ls), "\tstd: ", std(ls))
-
-        # embeddings
-        es = m[1:el](X[rand(1:N-1)]).data
-        println("Embedding: ", es)
-        println()
-    end
-
-    for epoch in 1:1
-        info("Epoch: $epoch ($seed)")
-        Flux.train!(loss, zip(X, Y), opt, cb=throttle(callback,3))
-    end
 end
-
-train(rand(1:10000))
-# end
