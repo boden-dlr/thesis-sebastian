@@ -48,6 +48,10 @@ end
 
 k_fold_out_of_time(data::AbstractArray, k = 5) = Channel(ctype=CrossValidation{typeof(data)}) do c
     n = length(data)
+    if n < k
+        warn("k ($k) should be smaller or equal to n ($n). Setting k to $n.")
+        k = min(k,n)
+    end
     s = round(Int, n/k)
     ps = partition_indices(data, k)
     ts = [IterTools.subsets([1:k...],k-1)...]
@@ -61,6 +65,10 @@ end
 
 k_fold_out_of_time(data::AbstractMatrix, k = 5) = Channel(ctype=CrossValidation{typeof(data)}) do c
     d,n = size(data)
+    if n < k
+        warn("k ($k) should be smaller or equal to n ($n). Setting k to $n.")
+        k = min(k,n)
+    end
     s = round(Int, n/k)
     ps = partition_indices(data, k)
     ts = [IterTools.subsets([1:k...],k-1)...]
