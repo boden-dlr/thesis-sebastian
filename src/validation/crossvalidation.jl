@@ -4,6 +4,8 @@ using IterTools
 struct CrossValidation{T}
     train::T
     test::T
+    i::Int64
+    k::Int64
 end
 
 
@@ -14,7 +16,7 @@ function out_of_time(data::AbstractArray, ratio=0.3)
     test_rng = split+1:N
     train = view(data, train_rng)
     test = view(data, test_rng)
-    CrossValidation(train, test)
+    CrossValidation(train, test, 1, 1)
 end
 
 
@@ -52,7 +54,7 @@ k_fold_out_of_time(data::AbstractArray, k = 5) = Channel(ctype=CrossValidation{t
     for i in 1:k
         test = k+1-i
         train = ts[i]
-        push!(c, CrossValidation(data[union(ps[train]...)], data[ps[test]]))
+        push!(c, CrossValidation(data[union(ps[train]...)], data[ps[test]], i, k))
     end
 end
 
@@ -65,6 +67,6 @@ k_fold_out_of_time(data::AbstractMatrix, k = 5) = Channel(ctype=CrossValidation{
     for i in 1:k
         test = k+1-i
         train = ts[i]
-        push!(c, CrossValidation(data[:,union(ps[train]...)], data[:,ps[test]]))
+        push!(c, CrossValidation(data[:,union(ps[train]...)], data[:,ps[test]], i, k))
     end
 end
