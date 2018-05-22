@@ -8,5 +8,9 @@ module Validation
 
     export sdbw, scattering, dense_bw
     export variance, sqrt_norm, avg_std, medoid, density
+
+    include("crossvalidation.jl")
+
+    export CrossValidation, out_of_time, partition_indices, k_fold_out_of_time
     
 end
