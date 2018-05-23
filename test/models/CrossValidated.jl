@@ -9,14 +9,8 @@ using Clustering
 using Distances
 using DataStructures
 using DataFrames
+using Base.Dates
 using CSV
-
-D = Dataset("*.log", "data/datasets/RCE/")
-raw = extract(D, take=4)
-
-# corpus = map(doc -> map(line -> lowercase(line), doc), corpus)
-splitby = r"\s+|[\.\,](?!\d)|[^\w\p{L}\-\_\.\,]"
-corpus = map(doc -> map(line -> String.(split(line, splitby, keep=false)), doc), raw)
 
 Normalized = Array{Array{Float64,1},1}
 
@@ -31,9 +25,8 @@ function transfrom(corpus::NLP.Corpus)
     data
 end
 
-norm = transfrom(corpus)
 
-function generate(doc::Normalized, seed::Integer)
+function train_model(doc::Normalized, seed::Integer)
     srand(seed)
     Xs = doc[1:end-1]
     Ys = doc[2:end]
@@ -62,7 +55,7 @@ function generate(doc::Normalized, seed::Integer)
     end
     Flux.testmode!(m)
     m[1].active = false
-    embedded = hcat(Flux.data.(m[1].(doc))...)
+    m
 end
 
 function cluster(data::Matrix{Float64})
@@ -86,10 +79,8 @@ function cluster(data::Matrix{Float64})
     results
 end
 
-function cross_validate()
 
-# seed = 1234
-seed = rand(1:10000)
+function cross_validate(norm::Array{Normalized,1}, seed::Int64 = rand(1:10000))
 
 df = DataFrame(
     seed=Int64[],
@@ -106,38 +97,52 @@ df = DataFrame(
     test_knn_sdbw=Float64[])
 
 for (i,doc) in enumerate(norm)
-    for cv in k_fold_out_of_time(doc)
-        info("cross-validation: ", cv.i, "/", cv.k, "; document ($i); seed ($seed)")
-        info("cross-validation: train")
-        embedded = generate(vcat(cv.train), seed)
-        train = cluster(embedded)
-        # @show train
+for cv in k_fold_out_of_time(doc)
+    info("cross-validation: ", cv.i, "/", cv.k, "; document ($i); seed ($seed)")
+    info("cross-validation: train")
+    data = vcat(cv.train)
+    @show length(data), typeof(data)
+    model = train_model(data, seed)
+    embedded = hcat(Flux.data.(model[1].(data))...)
+    train = cluster(embedded)
 
-        info("cross-validation: test")
-        embedded = generate(vcat(cv.test), seed)
-        test = cluster(embedded)
-        # @show test
-        
-        vs = [seed, i, cv.i, cv.k, vcat(
-            train["dbscan"]...,
-            train["knn"]...,
-            test["dbscan"]...,
-            test["knn"]...)...]
-        @show vs
-        push!(df, vs)
-        
-        println()
-    end
+    info("cross-validation: test")
+    data = cv.test
+    @show length(data), typeof(data)
+    embedded = hcat(Flux.data.(model[1].(data))...)
+    test = cluster(embedded)
+    
+    vs = [seed, i, cv.i, cv.k, vcat(
+        train["dbscan"]...,
+        train["knn"]...,
+        test["dbscan"]...,
+        test["knn"]...)...]
+    @show vs
+    push!(df, vs)
+    
+    println()
+end
     println("-------------------------------------")
 end
 
 df
-
 end
 
-df = cross_validate()
-CSV.write(string("cross_validation.csv"), df)
-for _ in 1:10
-    df = cross_validate()
-    CSV.write(string("cross_validation.csv"), df, append=true)
+
+D = Dataset("*.log", "data/datasets/RCE/")
+raw = extract(D, take=4)
+# corpus = map(doc -> map(line -> lowercase(line), doc), corpus)
+splitby = r"\s+|[\.\,](?!\d)|[^\w\p{L}\-\_\.\,]"
+corpus = map(doc -> map(line -> String.(split(line, splitby, keep=false)), doc), raw)
+normalized = transfrom(corpus)
+
+
+id = today()
+
+
+df = cross_validate(normalized)
+CSV.write(string("cross_validation_$id.csv"), df)
+for _ in 1:9
+    df = cross_validate(normalized)
+    CSV.write(string("cross_validation_$id.csv"), df, append=true)
 end
