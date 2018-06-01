@@ -1,10 +1,11 @@
 
 # file = readlines("data/datasets/test/syslog")
 # file = readlines("/home/sebastian/develop/julia/dev/LogClustering.jl/data/datasets/RCE/2017-11-28_08-08-42_129250.log")
-file = readlines("/home/sebastian/develop/julia/dev/LogClustering.jl/data/datasets/RCE/2018-03-01_15-11-18_51750.log")
+# file = readlines("/home/sebastian/develop/julia/dev/LogClustering.jl/data/datasets/RCE/2018-03-01_15-11-18_51750.log")
 # file = readlines("/home/sebastian/develop/julia/dev/LogClustering.jl/data/datasets/RCE/2018-03-01_15-07-59_7296.log")
-# file = readlines("/home/sebastian/develop/julia/dev/LogClustering.jl/data/datasets/RCE/2014-12-02_08-58-09_1048.log")
+file = readlines("/home/sebastian/develop/julia/dev/LogClustering.jl/data/datasets/RCE/2014-12-02_08-58-09_1048.log")
 # file = readlines("/home/sebastian/develop/julia/dev/LogClustering.jl/data/datasets/RCE/2018-02-09_10-04-25_1286.log")
+# file = readlines("/home/sebastian/develop/julia/dev/LogClustering.jl/data/datasets/RCE/2017-10-19_10-29-57_1387.log")
 N = length(file)
 
 DATETIME = r"[a-zA-Z]{3} [0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}"
@@ -90,11 +91,11 @@ for (i,line) in enumerate(file)
     pipe = map(term->replace(term, ID, "%ID%"), pipe)
 
     # pipe = map(term->replace(term, IPv4, "%IPv4%"), pipe)
-
-    pipe = vcat(map(term->String.(split(term, r"[^\w\p{L}\-\_\.\%]", keep=false)), pipe)...)
     # pipe = vcat(map(term->String.(split(term, r"[^\w\p{L}\-\_\%]", keep=false)), pipe)...)
 
+    pipe = vcat(map(term->String.(split(term, r"[^\w\p{L}\-\_\.\%]", keep=false)), pipe)...)
     pipe = map(term->replace(term, IPv4, "%IPv4%"), pipe)
+
     pipe = map(term->replace(term, FLOAT, "%FLOAT%"), pipe)
     pipe = map(term->replace(term, INT, "%INT%"), pipe)
     pipe = map(term->replace(term, HEX, "%HEX%"), pipe)
@@ -131,8 +132,11 @@ normalized = hcat(KATE.normalize(piped, termcount)...)'
 using PyCall
 @pyimport umap
 
+seed = rand(1:10000)
+# seed = 7040
+
 U = umap.UMAP(
-    random_state=1234,
+    random_state=seed,
     n_neighbors=5)
 # U = umap.UMAP()
 umapped = U[:fit_transform](normalized)
@@ -159,7 +163,8 @@ using Distances
 # end
 # C = collect(values(Ass))
 
-clustered = dbscan(umapped_t, 0.25)
+radius = 0.4
+clustered = dbscan(umapped_t, radius)
 C = Vector{Array{Int,1}}()
 assignments = zeros(Int, N)
 for (i,c) in enumerate(clustered)
@@ -171,25 +176,52 @@ for (i,c) in enumerate(clustered)
 end
 
 
-scatter(umapped[:,1], umapped[:,2],
+figure = scatter(umapped[:,1], umapped[:,2],
     marker_z = assignments,
     labels = ["clustered"])
 
 
-# using LogClustering.Validation
-# validation = sdbw(umapped_t, C)
+
+uniques = unique(map(line->line[min(2,end)],piped))
+# uniques = unique(map(line->line[min(3,end)],piped))
+# uniques = unique(map(line->line[min(4,end)],piped))
 
 
-for (i,c) in enumerate(C[:])
+
+C_counts = map(t->t[1] => length(t[2]),enumerate(C))
+outlier_treshold = round(Int, N*0.01)
+outliers = map(kv->kv[1], filter(kv->kv[2] <= outlier_treshold, collect(C_counts)))
+
+for (i,c) in enumerate(C[outliers])
     info(string(i, "\t", length(c)))
     for (j,line) in enumerate(c)
         # if piped[line][1] == "at"
-        if piped[line][min(2,end)] == "ERROR"
+        if piped[line][min(2,end)] in ["ERROR","WARN","INFO"]
             println(j, "    ", line, "    ", file[line])
         end
     end
     println("---")
 end
 
-map(t->t[1] => length(t[2]),enumerate(C))
-uniques = unique(map(line->line[min(2,end)],piped))
+
+using LogClustering.Validation
+validation = sdbw(umapped_t, C)
+
+
+N
+seed
+length(C)
+validation
+
+
+savefig(figure, string(
+    "data/experiments/",
+    now(), "_",
+    N, "_",
+    seed, "_",
+    radius, "_",
+    length(C), "_",
+    length(outliers), "_",
+    outlier_treshold, "_",
+    validation,
+    ".png"))
