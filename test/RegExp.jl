@@ -17,7 +17,7 @@ end
 set = [
     ["to", "be", "or", "not", "to", "be"],
     ["to", "be", "or", "not", "to", "be", "this", "is", "the", "question"],
-    ["to", "be", "or", "not", "to", "be", ",", "this", "is", "the", "question"],
+    ["to", "be", "or", "not", "to", "be,", "this", "is", "the", "question"],
 ]
 regexp = RegExp.infer(set)
 for line in set
