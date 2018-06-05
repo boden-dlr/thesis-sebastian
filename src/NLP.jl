@@ -360,4 +360,56 @@ function tokenize(lines::Array{String};
     lines_limited, termcount
 end
 
+
+function split_and_keep_splitter(str::S, pattern::Regex;
+    keep_empty=false) where S<:AbstractString
+
+    list::Union{Void,Array{S}} = nothing
+    
+    ms = matchall(pattern, str)
+    if isempty(ms)
+        if keep_empty
+            list = [str]
+        else
+            str == "" ? list = [] : list = [str]
+        end
+    else
+        list = Vector{S}()        
+        splts = map(m->(m.offset+1,m.offset+m.endof),ms)
+        n = length(splts)
+        for (i,splt) in enumerate(splts)
+            current = str[splt[1]:splt[2]]
+
+            if i == 1
+                before = str[1:splt[1]-1]
+            else
+                before = str[splts[i-1][2]+1:splt[1]-1]
+            end
+                
+            if keep_empty
+                push!(list, before)
+                push!(list, current)
+            else
+                before  != ""  ? push!(list, before) : nothing
+                current != ""  ? push!(list, current) : nothing
+            end
+
+            if i == n
+                last = str[splt[2]+1:end]
+                if keep_empty
+                    push!(list, last)
+                else
+                    last    != "" ? push!(list, last) : nothing
+                end
+            end
+        end
+    end
+    return list
+end
+
+
+# split_and_keep_splitter("", r"[\w\p{L}]+")
+split_and_keep_splitter("2014-12-02 08:27:33,090 DEBUG - de.rcenvironment.components.cpacs.vampzeroinitializer.common - BundleEvent [unknown:512] - de.rcenvironment.components.cpacs.vampzeroinitializer.common", r"[\w\p{L}\.]+")
+
+
 end # module NLP
