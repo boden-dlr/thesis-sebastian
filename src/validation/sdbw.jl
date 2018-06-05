@@ -112,10 +112,13 @@ function dense_bw(D::AbstractArray, C::AbstractArray, DC::AbstractArray)
 end
 
 
-function sdbw(D::AbstractArray, C::AbstractArray)
+function sdbw(D::AbstractArray, C::AbstractArray; dense=true)
     DC = [view(D,:,c) for c in C]
     s = scattering(D,C,DC)
-    d = dense_bw(D,C,DC)
+    d = 0.0
+    if dense
+        d = dense_bw(D,C,DC)
+    end
     # @show s, d
     s + d
 end
