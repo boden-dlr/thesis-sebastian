@@ -12,9 +12,9 @@ gr()
 
 # Data & Transformation
 
-file = "/home/sebastian/develop/topic/clustering/LogClustering.jl/data/datasets/RCE/2014-12-02_08-58-09_1048.log"
-# file = "/home/sebastian/develop/topic/clustering/LogClustering.jl/data/datasets/RCE/2018-03-01_15-11-18_51750.log"
-# file = "/home/sebastian/develop/topic/clustering/LogClustering.jl/data/datasets/test/short.txt"
+file = "data/datasets/RCE/2014-12-02_08-58-09_1048.log"
+# file = "data/datasets/RCE/2018-03-01_15-11-18_51750.log"
+# file = "data/datasets/test/short.txt"
 
 text = collect(readstring(file))
 drop = 32
@@ -110,8 +110,8 @@ function loss(xs, ys)
     return l
 end
 
-opt = ADAM(params(m), 0.01)
-# opt = Flux.ADADelta(params(m))
+# opt = ADAM(params(m), 0.01)
+opt = Flux.ADADelta(params(m))
 
 # evalcb = () -> @show loss(Xs[5], Ys[5])
 
