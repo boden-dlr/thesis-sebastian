@@ -1,5 +1,5 @@
 using Base.Test
-using LogClustering.Clustering
+using LogClustering.ClusteringUtils
 
 @testset "test soft & hard clustering on small sample data" begin
     data = [
