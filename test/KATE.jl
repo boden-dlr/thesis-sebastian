@@ -12,7 +12,7 @@ using Plots
 gr()
 using NearestNeighbors
 using LogClustering.Validation
-using LogClustering.Clustering
+using LogClustering.ClusteringUtils
 using Distances
 # using Rsvg
 # plotlyjs()
