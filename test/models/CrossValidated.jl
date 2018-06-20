@@ -32,10 +32,14 @@ function train_model(doc::Normalized, seed::Integer)
     Ys = doc[2:end]
     N = length(doc[1]) # normalized line (max line length)
     L = 2
-    kc = 2
+    activate = sin
     m = Chain(
-        KATE.KCompetetive(N, L, tanh, k=kc),
-        Dense(L, N, sigmoid)
+        KATE.KCompetetive(N, 100, tanh, k=25),
+        Dense(100, 5, activate),
+        KATE.KCompetetive(5, L, tanh, k=L),
+        Dense(L, 5, activate),
+        Dense(5, 100, activate),
+        Dense(100, N, sigmoid)
     )
     function loss(xs, ys)
         crossentropy(m(xs), ys)
@@ -73,7 +77,7 @@ function cluster(data::Matrix{Float64})
     # @show length(clustering), typeof(clustering)
     values = map(c->data[:,c],clustering)
     bcv = betacv_pairwise(values)
-    sd = sdbw(data, clustering)
+    sd = sdbw(data, clustering, dense=false)
     results["knn"] = (bcv,sd)
 
     results
@@ -130,19 +134,18 @@ end
 
 
 D = Dataset("*.log", "data/datasets/RCE/")
-raw = extract(D, take=4)
+raw = extract(D, take=3)
 # corpus = map(doc -> map(line -> lowercase(line), doc), corpus)
 splitby = r"\s+|[\.\,](?!\d)|[^\w\p{L}\-\_\.\,]"
 corpus = map(doc -> map(line -> String.(split(line, splitby, keep=false)), doc), raw)
 normalized = transfrom(corpus)
 
-
-id = today()
-
+id = Dates.format(now(), dateformat"Y-mm-dd_HHMMSS")
+filename = "data/clustering/cross_validation_$id.csv"
 
 df = cross_validate(normalized)
-CSV.write(string("cross_validation_$id.csv"), df)
+CSV.write(filename, df)
 for _ in 1:9
     df = cross_validate(normalized)
-    CSV.write(string("cross_validation_$id.csv"), df, append=true)
+    CSV.write(filename, df, append=true)
 end
