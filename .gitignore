@@ -7,11 +7,14 @@
 *.log
 *.txt
 *.csv
+
 *.json
 *.xml
 *.data
 *.model
 *.ods
+*.xls
+*.xlsx
 *.jdl
 *.spmf
 *.prefixspan
