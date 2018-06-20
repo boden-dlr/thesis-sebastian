@@ -9,9 +9,26 @@ struct Dataset
     directory::String
 end
 
-function extract(dataset::Dataset; handle=readlines, take::Integer=-1)
+
+function unique_rand(rng::UnitRange, n::Integer)
+    if length(rng) < n
+        error("`n` must be smaller or equal to the total amount of unique elements in `rng`.")
+    end
+    uniques = Set{eltype(rng)}()
+    while length(uniques) < n
+        push!(uniques, rand(rng))
+    end
+    collect(uniques)
+end
+
+
+function extract(dataset::Dataset;
+    handle=readlines, take::Integer=-1, randomize=false)
     if take == -1
         files = glob(dataset.files, dataset.directory)
+    elseif randomize
+        files = glob(dataset.files, dataset.directory)
+        files = files[unique_rand(1:length(files), take)]
     else
         files = glob(dataset.files, dataset.directory)[1:take]
     end
