@@ -4,6 +4,7 @@
 
 *debug*
 *previous*
+syslog
 *.log
 *.txt
 *.csv
