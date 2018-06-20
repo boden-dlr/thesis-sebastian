@@ -59,6 +59,7 @@ function train_model(doc::Normalized, seed::Integer)
     end
     Flux.testmode!(m)
     m[1].active = false
+    m[3].active = false
     m
 end
 
