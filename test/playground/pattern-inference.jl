@@ -218,8 +218,6 @@ umapped_t = umapped'
 
 
 
-
-
 # D = pairwise(Euclidean(), umapped_t)
 # clustered = dbscan(D, 0.25, 1)
 # assignments = clustered.assignments
@@ -240,13 +238,13 @@ clustered = dbscan(umapped_t, radius)
 assignments = clustering_to_assignments(clustered)
 C = assignments_to_clustering(assignments)
 
-# figure = scatter(umapped[:,1], umapped[:,2],
-#     marker_z = assignments,
-#     labels = ["raw clustered"])
-
-figure_raw = scatter3d(umapped[:,1], umapped[:,2], umapped[:,3],
+figure_raw = scatter(umapped[:,1], umapped[:,2],
     marker_z = assignments,
     labels = ["raw clustered"])
+
+# figure_raw = scatter3d(umapped[:,1], umapped[:,2], umapped[:,3],
+#     marker_z = assignments,
+#     labels = ["raw clustered"])
 
 #
 # find outliers in clusters
@@ -333,9 +331,13 @@ end
 C_refined = vcat(untouched, collect(values(joined)))
 assignments_refined = clustering_to_assignments(C_refined)
 
-figure_refined = scatter3d(umapped[:,1], umapped[:,2], umapped[:,3],
+figure_refined = scatter(umapped[:,1], umapped[:,2],
     marker_z = assignments_refined,
     labels = ["refined clustered"])
+
+# figure_refined = scatter3d(umapped[:,1], umapped[:,2], umapped[:,3],
+#     marker_z = assignments_refined,
+#     labels = ["refined clustered"])
 
         # terms = NLP.terms(lines)
         # # @show length(terms), typeof(terms)
