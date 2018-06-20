@@ -107,7 +107,9 @@ function cross_validate(norm::Array{Normalized,1}, seed::Int64 = rand(1:10000))
         doc=Int64[], 
         lines=Int64[], 
         round=Int64[], 
-        k=Int64[], 
+        k=Int64[],
+        train=Int64[],
+        test=Int64[],
         train_dbscan1_n=Int64[],
         train_dbscan1_betacv=Float64[], 
         train_dbscan1_sdbw=Float64[],
@@ -136,23 +138,25 @@ function cross_validate(norm::Array{Normalized,1}, seed::Int64 = rand(1:10000))
     N_docs = length(norm)
 
     for (i,doc) in enumerate(norm)
+        lines = length(doc)
         for cv in k_fold_out_of_time(doc)
             data = vcat(cv.train)
             # @show length(data), typeof(data)
-            lines = length(data)
-            info("cross-validation: ", cv.i, "/", cv.k, "; document: $i/$N_docs; data: ", lines, "; seed: $seed")
-            info("cross-validation: train")
+            train_n = length(data)
+            info("cross-validation: ", cv.i, "/", cv.k, "; document: $i/$N_docs; data: $lines; seed: $seed")
+            info("cross-validation: train: $train_n")
             model = train_model(data, seed)
             embedded = hcat(Flux.data.(model[1].(data))...)
             train = cluster(embedded)
 
-            info("cross-validation: test")
             data = cv.test
             # @show length(data), typeof(data)
+            test_n = length(data)
+            info("cross-validation: test: $test_n")
             embedded = hcat(Flux.data.(model[1].(data))...)
             test = cluster(embedded)
             
-            vs = [seed, i, lines, cv.i, cv.k, collect(
+            vs = [seed, i, lines, cv.i, cv.k, train_n, test_n, collect(
                 Iterators.flatten(
                     Iterators.flatten(vcat(values(train), values(test)))))...]
             @show vs
@@ -168,8 +172,8 @@ end
 
 
 D = Dataset("*.log", "data/datasets/RCE/")
-raw = extract(D, take=3)
-# raw = extract(D, take=3, randomize=true)
+# raw = extract(D, take=3)
+raw = extract(D, take=1, randomize=true)
 # corpus = map(doc -> map(line -> lowercase(line), doc), corpus)
 # splitby = r"\s+|[\.\,](?!\d)|[^\w\p{L}\-\_\.\,]"
 splitby = r"\s+"
@@ -181,7 +185,7 @@ filename = "data/clustering/cross_validation_$id.csv"
 
 df = cross_validate(normalized)
 CSV.write(filename, df)
-for _ in 1:1
+for _ in 1:4 # total: 1+4
     df = cross_validate(normalized)
     CSV.write(filename, df, append=true)
 end
