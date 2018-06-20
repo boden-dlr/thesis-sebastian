@@ -53,8 +53,10 @@ end
 end
 
 
-@testset "Validate Clustering with BetaCV" begin
+@testset "Validate Clustering with BetaCV and S_Dbw" begin
     using LogClustering.Validation
+
+    # srand(1234)
 
     L = 3
     N = 1000
@@ -73,8 +75,8 @@ end
     Vs = map(c->data[:,c],C)
     bcv = @time betacv(Vs)
     @show bcv
-    @test bcv > 0.7
-    @test bcv < 0.8
+    @test bcv > 0.01
+    @test bcv < 0.1
 
     sd = @time sdbw(data, C)
     @show sd
