@@ -1,12 +1,12 @@
 using Base.Test
-using FluxMO.Validation
+using LogClustering.Validation
 
 # http://swl.htwsaar.de/lehre/ss17/ml/slides/2017-vl-ml-ch4-1-clustering.pdf
 function naive_intra_cluster_weights(C::AbstractArray)
     W_in = 0.0
     N_in = 0
     for (i,c) in enumerate(C)
-        W_in += weights(c,c)
+        W_in += LogClustering.Validation.weights(c,c)
         N_in += length(c) * (length(c)-1)
     end
     0.5 * W_in, convert(Int64, 0.5 * N_in)
@@ -28,7 +28,7 @@ function naive_inter_cluster_weights(C::AbstractArray)
     for (i,S) in enumerate(C)
         for (j,R) in enumerate(C)
             if i != j
-                W_out += weights(S,R)
+                W_out += LogClustering.Validation.weights(S,R)
                 N_out += length(S) * length(R)
             end
         end
@@ -64,7 +64,7 @@ end
 
     # intra
     expected = naive_intra_cluster_weights(C)
-    result   = intra_cluster_weights(C)
+    result   = LogClustering.Validation.intra_cluster_weights(C)
     @test expected[1] ≈ result[1]
     @test expected[2] ≈ result[2]
     @test naive_n_in(C) == 6
@@ -72,7 +72,7 @@ end
     
     # inter
     expected = naive_inter_cluster_weights(C)    
-    result   = inter_cluster_weights(C)
+    result   = LogClustering.Validation.inter_cluster_weights(C)
     @test expected[1] ≈ result[1]
     @test expected[1] ≈ 197.98989873223329
     @test expected[2] == result[2]
@@ -119,7 +119,7 @@ end
 
     # intra
     expected = naive_intra_cluster_weights(C)
-    result   = intra_cluster_weights(C)
+    result   = LogClustering.Validation.intra_cluster_weights(C)
     @test expected[1] ≈ result[1]
     @test expected[1].tracker.data ≈ 0.8485281374238982
     @test expected[2] == result[2]
@@ -127,7 +127,7 @@ end
     
     # inter
     expected = naive_inter_cluster_weights(C)
-    result   = inter_cluster_weights(C)
+    result   = LogClustering.Validation.inter_cluster_weights(C)
     @test expected[1] ≈ result[1]
     @test expected[1] ≈ 197.98989873223329
     @test expected[2] == result[2]
@@ -180,15 +180,15 @@ end
 
     # intra
     expected = intra_cluster_weights_pairwise(C)
-    result   = intra_cluster_weights_pairwise(C_tracked)
+    result   = LogClustering.Validation.intra_cluster_weights_pairwise(C_tracked)
     @test expected[1] ≈ result[1]
     @test expected[1] ≈ 0.8485281374238982
     @test expected[2] == result[2]
     @test expected[2] == 6
     
     # inter
-    expected = inter_cluster_weights_pairwise(C)
-    result   = inter_cluster_weights_pairwise(C_tracked)
+    expected = LogClustering.Validation.inter_cluster_weights_pairwise(C)
+    result   = LogClustering.Validation.inter_cluster_weights_pairwise(C_tracked)
     @test expected[1] ≈ result[1]
     @test expected[1] ≈ 197.98989873223329
     @test expected[2] == result[2]
@@ -210,6 +210,7 @@ end
         atol=1e-20)
 
     # NOTE: it is not possible to compute the gradient
+    @show after
     # 2×2 Array{Float64,2}:
     # NaN  NaN
     # NaN  NaN
