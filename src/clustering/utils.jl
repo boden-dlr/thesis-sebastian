@@ -62,28 +62,28 @@ function soft_to_hard_assignments(weights::Array{Float64,2})::Assignments
 end
 
 
-# tests
-in  = [1,2,2,3,3,3,4,4,4,4]
-C = assignments_to_clustering(in)
-out = clustering_to_assignments(C)
-assert(in == out)
+# # tests
+# in  = [1,2,2,3,3,3,4,4,4,4]
+# C = assignments_to_clustering(in)
+# out = clustering_to_assignments(C)
+# assert(in == out)
 
 
-c1 = Clustering.DbscanCluster(2,[1,2],[])
-c2 = Clustering.DbscanCluster(2,[3,4,5],[6])
-assignments_to_clustering(clustering_to_assignments([c1, c2]))
+# c1 = Clustering.DbscanCluster(2,[1,2],[])
+# c2 = Clustering.DbscanCluster(2,[3,4,5],[6])
+# assignments_to_clustering(clustering_to_assignments([c1, c2]))
 
 
-# soft to hard assignments
-m = 3
-n = 1000
-k = 5
+# # soft to hard assignments
+# m = 3
+# n = 1000
+# k = 5
 
-x = rand(m,n)
+# x = rand(m,n)
 
-fuzziness = 2.0
-srand(34568)
-r = fuzzy_cmeans(x, k, fuzziness)
+# fuzziness = 2.0
+# srand(34568)
+# r = fuzzy_cmeans(x, k, fuzziness)
 
-ass = soft_to_hard_assignments(r.weights)
-assignments_to_clustering(ass)
+# ass = soft_to_hard_assignments(r.weights)
+# assignments_to_clustering(ass)
