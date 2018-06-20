@@ -2,7 +2,7 @@ using LogClustering.ETL
 using LogClustering.Validation
 using LogClustering.NLP
 using LogClustering.KATE
-using LogClustering.Clustering
+using LogClustering.ClusteringUtils
 using Flux
 using Flux: throttle, crossentropy
 using Clustering
