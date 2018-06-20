@@ -92,8 +92,8 @@ function cluster(data::Matrix{Float64})
     values = map(c->data[:,c],clustering)
     cn = length(clustering)
     bcv = betacv_pairwise(values)
-    sd = sdbw(data, clustering)
-    # sd = sdbw(data, clustering, dense=false)
+    # sd = sdbw(data, clustering)
+    sd = sdbw(data, clustering, dense=false) # only scattering
     results["knn"] = (cn,bcv,sd)
 
     results
@@ -105,6 +105,7 @@ function cross_validate(norm::Array{Normalized,1}, seed::Int64 = rand(1:10000))
     df = DataFrame(
         seed=Int64[],
         doc=Int64[], 
+        lines=Int64[], 
         round=Int64[], 
         k=Int64[], 
         train_dbscan1_n=Int64[],
@@ -138,7 +139,8 @@ function cross_validate(norm::Array{Normalized,1}, seed::Int64 = rand(1:10000))
         for cv in k_fold_out_of_time(doc)
             data = vcat(cv.train)
             # @show length(data), typeof(data)
-            info("cross-validation: ", cv.i, "/", cv.k, "; document: $i/$N_docs; data: ", length(data), "; seed: $seed")
+            lines = length(data)
+            info("cross-validation: ", cv.i, "/", cv.k, "; document: $i/$N_docs; data: ", lines, "; seed: $seed")
             info("cross-validation: train")
             model = train_model(data, seed)
             embedded = hcat(Flux.data.(model[1].(data))...)
@@ -150,7 +152,7 @@ function cross_validate(norm::Array{Normalized,1}, seed::Int64 = rand(1:10000))
             embedded = hcat(Flux.data.(model[1].(data))...)
             test = cluster(embedded)
             
-            vs = [seed, i, cv.i, cv.k, collect(
+            vs = [seed, i, lines, cv.i, cv.k, collect(
                 Iterators.flatten(
                     Iterators.flatten(vcat(values(train), values(test)))))...]
             @show vs
@@ -166,7 +168,7 @@ end
 
 
 D = Dataset("*.log", "data/datasets/RCE/")
-raw = extract(D, take=1)
+raw = extract(D, take=3)
 # raw = extract(D, take=3, randomize=true)
 # corpus = map(doc -> map(line -> lowercase(line), doc), corpus)
 # splitby = r"\s+|[\.\,](?!\d)|[^\w\p{L}\-\_\.\,]"
