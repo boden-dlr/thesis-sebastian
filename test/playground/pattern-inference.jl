@@ -9,6 +9,10 @@ using LogClustering.ClusteringUtils
 using DataStructures
 using LogClustering.Validation
 
+using Flux
+using Flux: throttle, crossentropy
+
+
 # file = readlines("data/datasets/test/syslog")
 # file = readlines("data/datasets/RCE/2017-11-28_08-08-42_129250.log")
 # file = readlines("data/datasets/RCE/2018-03-01_15-11-18_51750.log")
@@ -20,7 +24,7 @@ file = readlines("data/datasets/RCE/2017-02-24_10-26-01_6073.log")
 N = length(file)
 
 # DATETIME = r"[a-zA-Z]{3} [0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}"
-# RCE_DATETIME = r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}"
+RCE_DATETIME = r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}"
 
 DATE = r"^\d{4}-\d{2}-\d{2}$"
 TIME = r"^[0-9]{2}:[0-9]{2}:[0-9]{2}$"
@@ -112,19 +116,19 @@ for (i,line) in enumerate(file)
     pipe = deepcopy(line)
 
     # pipe = replace(pipe, DATETIME, "%DATETIME%")
-    # pipe = replace(pipe, RCE_DATETIME, "%DATETIME%")
+    pipe = replace(pipe, RCE_DATETIME, "%DATETIME%")
     
     pipe = String.(NLP.split_and_keep_splitter(pipe, r"\s+|[\,\;\(\)\[\]\]\{\}\<\>\|\'\"\#]+"))
 
-    # pipe = vcat(map(term->String.(NLP.split_and_keep_splitter(term, r"[\w\p{L}\-\_\.\:\\\/\%]+")), pipe)...)
+    # # pipe = vcat(map(term->String.(NLP.split_and_keep_splitter(term, r"[\w\p{L}\-\_\.\:\\\/\%]+")), pipe)...)
     
     pipe = map(term->replace(term, PATH, "%PATH%"), pipe)
     # pipe = map(term->replace(term, URI, "%URI%"), pipe)
 
     # pipe = vcat(map(term->String.(NLP.split_and_keep_splitter(term, r"[\w\p{L}\-\_\.\:\%]+")), pipe)...)
 
-    pipe = map(term->replace(term, DATE, "%DATE%"), pipe)
-    pipe = map(term->replace(term, TIME, "%TIME%"), pipe)
+    # pipe = map(term->replace(term, DATE, "%DATE%"), pipe)
+    # pipe = map(term->replace(term, TIME, "%TIME%"), pipe)
     pipe = map(term->replace(term, MAC, "%MAC%"), pipe)
     pipe = map(term->replace(term, IPv6, "%IPv6%"), pipe)
     
@@ -151,9 +155,9 @@ for (i,line) in enumerate(file)
 
     pipe = map(term->replace(term, INT, "%INT%"), pipe)
     
-    pipe = map(term->replace(term, MIN, "%MINUTES%"), pipe)
-    pipe = map(term->replace(term, SEC, "%SECONDS%"), pipe)
-    pipe = map(term->replace(term, MS,  "%MILLIS%"),  pipe)
+    # pipe = map(term->replace(term, MIN, "%MINUTES%"), pipe)
+    # pipe = map(term->replace(term, SEC, "%SECONDS%"), pipe)
+    # pipe = map(term->replace(term, MS,  "%MILLIS%"),  pipe)
     
     # @show pipe
     push!(piped, pipe)
@@ -190,35 +194,89 @@ termcount["ERROR"]
 # 
 # normalize / encode
 # 
+Normalized = Array{Array{Float64,1},1}
 
-normalized = hcat(KATE.normalize(piped, termcount)...)'
+normalized = KATE.normalize(piped, termcount)
 
+# "normalize by word index"
 # lookup = DataStructures.OrderedDict(map(t->t[2]=>t[1] ,enumerate(keys(termcount))))
 # MAX = maximum(map(length, file))
-# normalized = hcat(map(line->rpad(map(term->lookup[term]^2, line),MAX,0),piped)...)'
+# normalized = map(line->Float64.(rpad(map(term->lookup[term], line),MAX, 1)),piped)
 
 
+normalized_matrix = hcat(normalized...)'
 
-@pyimport umap
 
+# 
+# embed
+# 
 seed = rand(1:10000)
 # seed = 7040
 
 n_neighbors=10
-n_components=2
+n_components=3
 
-# U = umap.UMAP()
+@pyimport umap
 U = umap.UMAP(
     random_state=seed,
     n_neighbors=n_neighbors,
     n_components=n_components)
 
-umapped = U[:fit_transform](normalized)
-umapped_t = umapped'
+embedded_t = U[:fit_transform](normalized_matrix)
+embedded = embedded_t'
 
 
+function train_model(doc::Normalized, seed::Integer)
+    srand(seed)
+    Xs = doc[1:end-1]
+    Ys = doc[2:end]
+    N = length(doc[1]) # normalized line (max line length)
+    L = 3
+    activate = sin
 
-# D = pairwise(Euclidean(), umapped_t)
+    m = Chain(
+        KATE.KCompetetive(N, 100, tanh, k=25),
+        Dense(100, 5, activate),
+        KATE.KCompetetive(5, L, tanh, k=L),
+        Dense(L, 5, activate),
+        Dense(5, 100, activate),
+        Dense(100, N, sigmoid)
+    )
+
+    function loss(xs, ys)
+        ce = crossentropy(m(xs), ys)
+        Flux.truncate!(m)
+        ce
+    end
+
+    function callback()
+        l = loss(Xs[5], Ys[5])
+        println("loss:\t", l)
+    end
+
+    opt = Flux.ADAM(params(m))
+
+    for e = 1:3
+        info("Epoch $e")
+        Flux.train!(
+            loss,
+            zip(Xs, Ys),
+            opt,
+            cb = throttle(callback, 5))
+    end
+
+    Flux.testmode!(m)
+    m[1].active = false
+    m[3].active = false
+    m
+end
+
+# model = train_model(normalized, seed)
+# embedded = hcat(Flux.data.(model[1:3].(normalized))...)
+# embedded_t = embedded'
+
+
+# D = pairwise(Euclidean(), embedded)
 # clustered = dbscan(D, 0.25, 1)
 # assignments = clustered.assignments
 # length(unique(assignments))
@@ -232,19 +290,19 @@ umapped_t = umapped'
 # end
 # C = collect(values(Ass))
 
-radius = 0.3
-clustered = dbscan(umapped_t, radius)
+radius = 0.5
+clustered = dbscan(embedded, radius)
 
 assignments = clustering_to_assignments(clustered)
 C = assignments_to_clustering(assignments)
 
-figure_raw = scatter(umapped[:,1], umapped[:,2],
-    marker_z = assignments,
-    labels = ["raw clustered"])
-
-# figure_raw = scatter3d(umapped[:,1], umapped[:,2], umapped[:,3],
+# figure_raw = scatter(embedded_t[:,1], embedded_t[:,2],
 #     marker_z = assignments,
 #     labels = ["raw clustered"])
+
+figure_raw = scatter3d(embedded_t[:,1], embedded_t[:,2], embedded_t[:,3],
+    marker_z = assignments,
+    labels = ["raw clustered"])
 
 #
 # find outliers in clusters
@@ -269,8 +327,11 @@ function split_cluster(cluster)
         stays = Vector{Int64}()
         splits = Vector{Int64}()
         for line in cluster
-            if length(piped[line]) > med_line + std_line
+            # smaller or bigger...
+            if length(piped[line]) > med_line + std_line || length(piped[line]) < med_line - std_line
                 push!(splits,line)
+            # equal 
+            # if length(piped[line]) == med_line
             else
                 push!(stays,line)
             end
@@ -331,13 +392,13 @@ end
 C_refined = vcat(untouched, collect(values(joined)))
 assignments_refined = clustering_to_assignments(C_refined)
 
-figure_refined = scatter(umapped[:,1], umapped[:,2],
-    marker_z = assignments_refined,
-    labels = ["refined clustered"])
-
-# figure_refined = scatter3d(umapped[:,1], umapped[:,2], umapped[:,3],
+# figure_refined = scatter(embedded_t[:,1], embedded_t[:,2],
 #     marker_z = assignments_refined,
 #     labels = ["refined clustered"])
+
+figure_refined = scatter3d(embedded_t[:,1], embedded_t[:,2], embedded_t[:,3],
+    marker_z = assignments_refined,
+    labels = ["refined clustered"])
 
         # terms = NLP.terms(lines)
         # # @show length(terms), typeof(terms)
@@ -370,7 +431,7 @@ for (i,c) in enumerate(C_sorted[:])
     for (j,line) in enumerate(c)
         # if piped[line][1] == "at"
 
-        if length(piped[line]) > 3 && piped[line][3] in ["ERROR","WARN"] #,"INFO"]
+        if length(piped[line]) > 3 && piped[line][min(end,3)] in ["ERROR","WARN"] #,"INFO"]
             print_c = true
             break
         elseif i in outliers
@@ -382,8 +443,8 @@ for (i,c) in enumerate(C_sorted[:])
     if print_c
         info(string(i, "\t", length(c)), "\t outlier: ", i in outliers)
         for (j,line) in enumerate(c)
-            println(j, "    ", line, "    ", file[line])
-            info(join(piped[line]))
+            println(j, "; ", line, "; ", file[line])
+            info(length(piped[line]), "; ", join(piped[line]))
             # info(join(normalized[line,:], " "))
         end
         println("---")
@@ -393,10 +454,10 @@ end
 
 
 
-validation = sdbw(umapped_t, C, dense=false)
-validation2 = sdbw(umapped_t, C_refined, dense=false)
-DC_raw = [view(umapped_t,:,c) for c in C]
-DC_refined = [view(umapped_t,:,c) for c in C_refined]
+validation = sdbw(embedded, C, dense=false)
+validation2 = sdbw(embedded, C_refined, dense=false)
+DC_raw = [view(embedded,:,c) for c in C]
+DC_refined = [view(embedded,:,c) for c in C_refined]
 betacv1 = betacv(DC_raw)
 betacv2 = betacv(DC_refined)
 
