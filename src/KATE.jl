@@ -111,14 +111,16 @@ function log_by_frequency(word::String, wc::DataStructures.OrderedDict{String,In
 end
 
 # ::Array{String}
-function normalize(tokens::Array{Array{String,1},1}, word_count::DataStructures.OrderedDict{String,Int64})
+function normalize(tokens::Array{Array{String,1},1},
+    word_count::DataStructures.OrderedDict{String,Int64},
+    padding::Float64=1.0)
     V = length(word_count)
     numeric = map(
         line -> map(
             word -> log_by_frequency(word, word_count, V), line),
         tokens)
     N = maximum(map(line -> length(line), numeric))
-    padded = map(line -> rpad(line, N, 0.0), numeric)
+    padded = map(line -> rpad(line, N, padding), numeric)
     padded
 end
 
