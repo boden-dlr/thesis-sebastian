@@ -201,12 +201,12 @@ Normalized = Array{Array{Float64,1},1}
 
 # "normalize by word index"
 lookup = DataStructures.OrderedDict(map(t->t[2]=>t[1] ,enumerate(keys(termcount))))
-MAX_length = maximum(map(length, file))
+MAX_length = min(1000, maximum(map(length, file)))
 MAX_count  = maximum(values(lookup))
 normalized = map(
     line->Float64.(rpad(
             # map(term->lookup[term], line),
-            map(term->lookup[term] / MAX_count, line),
+            map(term->lookup[term] / MAX_count, line[1:min(MAX_length,end)]),
             MAX_length, 1.0)),
     piped)
 
@@ -280,8 +280,27 @@ end
 
 model = train_model(normalized, seed)
 embedded = hcat(Flux.data.(model[1:3].(normalized))...)
-embedded_t = embedded'
 
+#
+# normalize embeddeings [-1.0, 1.0]
+#
+
+scale = 1.0
+(n,m) = size(embedded)
+min_embd = [minimum(embedded[i,:]) for i in 1:n]
+max_embd = [maximum(embedded[i,:]) for i in 1:n]
+diff_embd = scale*2.0 ./ (max_embd - min_embd)
+
+strech = zeros(3,3)
+strech[1,1] = diff_embd[1]
+strech[2,2] = diff_embd[2]
+strech[3,3] = diff_embd[3]
+strech
+
+embedded = strech * (embedded .- min_embd) - scale
+max_embd = [(minimum(embedded[i,:]), maximum(embedded[i,:])) for i in 1:n]
+
+embedded_t = embedded'
 
 # 
 # Clustering
@@ -290,7 +309,7 @@ embedded_t = embedded'
 # radius = 4e-2  # UMAP + count (wit MAX_count normalization)
 # radius = 1e-1  # UMAP + KATE.normalize
 # radius = 1e-2   # DeepKATE + count (without MAX_count normalization)
-radius = 1e-8   # DeepKATE + count (wit MAX_count normalization)
+radius = 5e-4   # DeepKATE + count (wit MAX_count normalization)
 # radius = 1e-4   # DeepKATE + KATE.normalize + 1 Epoch
 clustered = dbscan(embedded, radius)
 
