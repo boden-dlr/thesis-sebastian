@@ -270,7 +270,7 @@ function train_model(doc::Normalized, seed::Integer)
 
     opt = Flux.ADAM(params(m))
 
-    for e = 1:5
+    for e = 1:1
         info("Epoch $e")
         Flux.train!(
             loss,
@@ -321,7 +321,7 @@ embedded_t = embedded'
 # radius = 4e-2  # UMAP + count (wit MAX_count normalization)
 # radius = 1e-1  # UMAP + KATE.normalize
 # radius = 1e-2   # DeepKATE + count (without MAX_count normalization)
-radius = 5e-3   # DeepKATE + count (wit MAX_count normalization)
+radius = 1.8e-3   # DeepKATE + count (wit MAX_count normalization)
 # radius = 1e-4   # DeepKATE + KATE.normalize + 1 Epoch
 clustered = dbscan(embedded, radius)
 
@@ -489,7 +489,7 @@ end
 function accuracy(piped::NLP.Document, clustering::ClusteringUtils.NestedAssignments)
     # values = unique(map(p-> length(p) > 3 ? p[3] : "", piped))
     error = 0
-    for cluster in clustering
+    for (c_i, cluster) in enumerate(clustering)
         types = Dict{String,Int64}()
         for line in cluster
             if length(piped[line]) >= 3
@@ -502,8 +502,11 @@ function accuracy(piped::NLP.Document, clustering::ClusteringUtils.NestedAssignm
             end
         end
         if length(keys(types)) > 1
-            # get all values that do not belong the majority of the cluster
-            error += sum(sort(collect(values(types)))[1:end-1])
+            if any(key in ["ERROR", "WARN", "INFO"] for key in keys(types))
+                @show c_i, keys(types)
+                # get all values that do not belong the majority of the cluster
+                error += sum(sort(collect(values(types)))[1:end-1])
+            end
         end
     end
     @show error
