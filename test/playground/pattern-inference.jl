@@ -140,10 +140,10 @@ for (i,line) in enumerate(file)
     # pipe = map(term->replace(term, FILE, "%FILE%"), pipe)
     # pipe = map(term->replace(term, VERSION, "%VERSION%"), pipe)
 
-    # pipe = map(term->replace(term, ID_HEX, "%ID_HEX%"), pipe)
-    # pipe = map(term->replace(term, HEX, "%HEX%"), pipe)
+    pipe = map(term->replace(term, ID_HEX, "%ID_HEX%"), pipe)
+    pipe = map(term->replace(term, HEX, "%HEX%"), pipe)
 
-    # pipe = map(term->replace(term, ID, "%ID%"), pipe)
+    pipe = map(term->replace(term, ID, "%ID%"), pipe)
 
     # pipe = vcat(map(term->String.(NLP.split_and_keep_splitter(term, r"[\w\p{L}\-\_\%]+")), pipe)...)
     # pipe = vcat(map(term->String.(NLP.split(term, r"[^\w\p{L}\-\_\%]+", keep=false)), pipe)...)
@@ -164,6 +164,9 @@ for (i,line) in enumerate(file)
     push!(piped, pipe)
 end
 
+# 
+# preview 100 samples from piped
+# 
 for (line,pipe) in collect(zip(file, piped))[rand(1:N, 100)]
     # if contains(line,"ms")
         @show line
@@ -173,6 +176,9 @@ for (line,pipe) in collect(zip(file, piped))[rand(1:N, 100)]
 end
 
 
+# 
+# get unique terms and counts
+# 
 terms = NLP.terms(piped)
 termcount = NLP.count_terms(piped, terms=terms)
 
@@ -193,7 +199,7 @@ termcount["ERROR"]
 
 
 # 
-# normalize / encode
+# encode and normalize input (phrases)
 # 
 Normalized = Array{Array{Float64,1},1}
 
@@ -201,7 +207,8 @@ Normalized = Array{Array{Float64,1},1}
 
 # "normalize by word index"
 lookup = DataStructures.OrderedDict(map(t->t[2]=>t[1] ,enumerate(keys(termcount))))
-MAX_length = min(1000, maximum(map(length, file)))
+MAX_length = min(1500, maximum(map(length, file)))
+# MAX_length = maximum(map(length, file))
 MAX_count  = maximum(values(lookup))
 normalized = map(
     line->Float64.(rpad(
@@ -215,7 +222,7 @@ normalized_matrix = hcat(normalized...)'
 
 
 # 
-# embed
+# embed input (encoded phrases)
 # 
 seed = rand(1:10000)
 # seed = 7040
@@ -238,7 +245,7 @@ function train_model(doc::Normalized, seed::Integer)
     Xs = doc[1:end-1]
     Ys = doc[2:end]
     N = length(doc[1]) # normalized line (max line length)
-    L = 3
+    L = n_components
     activate = sin
 
     m = Chain(
@@ -263,7 +270,7 @@ function train_model(doc::Normalized, seed::Integer)
 
     opt = Flux.ADAM(params(m))
 
-    for e = 1:2
+    for e = 1:5
         info("Epoch $e")
         Flux.train!(
             loss,
@@ -281,11 +288,12 @@ end
 model = train_model(normalized, seed)
 embedded = hcat(Flux.data.(model[1:3].(normalized))...)
 
+
 #
 # normalize embeddeings [-1.0, 1.0]
 #
 
-scale = 1.0
+scale = 10.0
 (n,m) = size(embedded)
 min_embd = [minimum(embedded[i,:]) for i in 1:n]
 max_embd = [maximum(embedded[i,:]) for i in 1:n]
@@ -300,7 +308,11 @@ strech
 embedded = strech * (embedded .- min_embd) - scale
 max_embd = [(minimum(embedded[i,:]), maximum(embedded[i,:])) for i in 1:n]
 
+# 
+# transpose embeddings
+# 
 embedded_t = embedded'
+
 
 # 
 # Clustering
@@ -309,7 +321,7 @@ embedded_t = embedded'
 # radius = 4e-2  # UMAP + count (wit MAX_count normalization)
 # radius = 1e-1  # UMAP + KATE.normalize
 # radius = 1e-2   # DeepKATE + count (without MAX_count normalization)
-radius = 5e-4   # DeepKATE + count (wit MAX_count normalization)
+radius = 5e-3   # DeepKATE + count (wit MAX_count normalization)
 # radius = 1e-4   # DeepKATE + KATE.normalize + 1 Epoch
 clustered = dbscan(embedded, radius)
 
@@ -451,7 +463,8 @@ for (i,c) in enumerate(C_sorted[:])
     for (j,line) in enumerate(c)
         # if piped[line][1] == "at"
 
-        if length(piped[line]) > 3 && piped[line][min(end,1)] in ["\t"] # "ERROR","WARN","INFO"
+        # if length(piped[line]) > 3 && piped[line][min(end,1)] in ["\t"]
+        if length(piped[line]) > 3 && piped[line][min(end,3)] in ["ERROR"] # "ERROR","WARN","INFO"
             print_c = true
             break
         elseif i in outliers
@@ -473,19 +486,49 @@ end
 # uniques
 
 
+function accuracy(piped::NLP.Document, clustering::ClusteringUtils.NestedAssignments)
+    # values = unique(map(p-> length(p) > 3 ? p[3] : "", piped))
+    error = 0
+    for cluster in clustering
+        types = Dict{String,Int64}()
+        for line in cluster
+            if length(piped[line]) >= 3
+                tpe = piped[line][3]
+                if haskey(types, tpe)
+                    types[tpe] += 1
+                else
+                    types[tpe] = 1
+                end
+            end
+        end
+        if length(keys(types)) > 1
+            # get all values that do not belong the majority of the cluster
+            error += sum(sort(collect(values(types)))[1:end-1])
+        end
+    end
+    @show error
+    1 - (error / length(piped))
+end
 
-validation = sdbw(embedded, C, dense=false)
-validation2 = sdbw(embedded, C_refined, dense=false)
+# value mapping for betacv
 DC_raw = [view(embedded,:,c) for c in C]
 DC_refined = [view(embedded,:,c) for c in C_refined]
+
+
+accuracy(piped, C)
+accuracy(piped, C_refined)
+
+validation1 = sdbw(embedded, C, dense=false)
+validation2 = sdbw(embedded, C_refined, dense=false)
+
 betacv1 = betacv(DC_raw)
 betacv2 = betacv(DC_refined)
 
 N
 seed
-length(C)
+length(C), length(C_refined)
 length(outliers)
-validation
+
 
 function format_float(f)
     @sprintf "%1.2e" f
@@ -504,7 +547,7 @@ savefig(figures, string(
     "outlier_treshold=", outlier_treshold, "_",
     "umap_nghbrs=", n_neighbors, "_",
     "umap_dim=", n_components, "_",
-    "sdbw_raw=", format_float(validation), "_",
+    "sdbw_raw=", format_float(validation1), "_",
     "sdbw_refined=", format_float(validation2), "_",
     "betacv_raw=", format_float(betacv1), "_",
     "betacv_refined=", format_float(betacv2),
