@@ -122,27 +122,28 @@ for (i,line) in enumerate(file)
 
     # # pipe = vcat(map(term->String.(NLP.split_and_keep_splitter(term, r"[\w\p{L}\-\_\.\:\\\/\%]+")), pipe)...)
     
-    pipe = map(term->replace(term, PATH, "%PATH%"), pipe)
+    # pipe = map(term->replace(term, PATH, "%PATH%"), pipe)
     # pipe = map(term->replace(term, URI, "%URI%"), pipe)
 
     # pipe = vcat(map(term->String.(NLP.split_and_keep_splitter(term, r"[\w\p{L}\-\_\.\:\%]+")), pipe)...)
 
     # pipe = map(term->replace(term, DATE, "%DATE%"), pipe)
     # pipe = map(term->replace(term, TIME, "%TIME%"), pipe)
-    pipe = map(term->replace(term, MAC, "%MAC%"), pipe)
-    pipe = map(term->replace(term, IPv6, "%IPv6%"), pipe)
+
+    # pipe = map(term->replace(term, MAC, "%MAC%"), pipe)
+    # pipe = map(term->replace(term, IPv6, "%IPv6%"), pipe)
     
     pipe = vcat(map(term->String.(NLP.split_and_keep_splitter(term, r"[\:\=]+")), pipe)...)
 
-    pipe = map(term->replace(term, IPv4, "%IPv4%"), pipe)
+    # pipe = map(term->replace(term, IPv4, "%IPv4%"), pipe)
     pipe = map(term->replace(term, FLOAT, "%FLOAT%"), pipe)
-    pipe = map(term->replace(term, FILE, "%FILE%"), pipe)
-    pipe = map(term->replace(term, VERSION, "%VERSION%"), pipe)
+    # pipe = map(term->replace(term, FILE, "%FILE%"), pipe)
+    # pipe = map(term->replace(term, VERSION, "%VERSION%"), pipe)
 
-    pipe = map(term->replace(term, ID_HEX, "%ID_HEX%"), pipe)
-    pipe = map(term->replace(term, HEX, "%HEX%"), pipe)
+    # pipe = map(term->replace(term, ID_HEX, "%ID_HEX%"), pipe)
+    # pipe = map(term->replace(term, HEX, "%HEX%"), pipe)
 
-    pipe = map(term->replace(term, ID, "%ID%"), pipe)
+    # pipe = map(term->replace(term, ID, "%ID%"), pipe)
 
     # pipe = vcat(map(term->String.(NLP.split_and_keep_splitter(term, r"[\w\p{L}\-\_\%]+")), pipe)...)
     # pipe = vcat(map(term->String.(NLP.split(term, r"[^\w\p{L}\-\_\%]+", keep=false)), pipe)...)
@@ -196,12 +197,18 @@ termcount["ERROR"]
 # 
 Normalized = Array{Array{Float64,1},1}
 
-normalized = KATE.normalize(piped, termcount)
+# normalized = KATE.normalize(piped, termcount)
 
 # "normalize by word index"
-# lookup = DataStructures.OrderedDict(map(t->t[2]=>t[1] ,enumerate(keys(termcount))))
-# MAX = maximum(map(length, file))
-# normalized = map(line->Float64.(rpad(map(term->lookup[term], line),MAX, 1)),piped)
+lookup = DataStructures.OrderedDict(map(t->t[2]=>t[1] ,enumerate(keys(termcount))))
+MAX_length = maximum(map(length, file))
+MAX_count  = maximum(values(lookup))
+normalized = map(
+    line->Float64.(rpad(
+            # map(term->lookup[term], line),
+            map(term->lookup[term] / MAX_count, line),
+            MAX_length, 1.0)),
+    piped)
 
 
 normalized_matrix = hcat(normalized...)'
@@ -216,14 +223,14 @@ seed = rand(1:10000)
 n_neighbors=10
 n_components=3
 
-@pyimport umap
-U = umap.UMAP(
-    random_state=seed,
-    n_neighbors=n_neighbors,
-    n_components=n_components)
+# @pyimport umap
+# U = umap.UMAP(
+#     random_state=seed,
+#     n_neighbors=n_neighbors,
+#     n_components=n_components)
 
-embedded_t = U[:fit_transform](normalized_matrix)
-embedded = embedded_t'
+# embedded_t = U[:fit_transform](normalized_matrix)
+# embedded = embedded_t'
 
 
 function train_model(doc::Normalized, seed::Integer)
@@ -256,7 +263,7 @@ function train_model(doc::Normalized, seed::Integer)
 
     opt = Flux.ADAM(params(m))
 
-    for e = 1:3
+    for e = 1:2
         info("Epoch $e")
         Flux.train!(
             loss,
@@ -271,26 +278,20 @@ function train_model(doc::Normalized, seed::Integer)
     m
 end
 
-# model = train_model(normalized, seed)
-# embedded = hcat(Flux.data.(model[1:3].(normalized))...)
-# embedded_t = embedded'
+model = train_model(normalized, seed)
+embedded = hcat(Flux.data.(model[1:3].(normalized))...)
+embedded_t = embedded'
 
 
-# D = pairwise(Euclidean(), embedded)
-# clustered = dbscan(D, 0.25, 1)
-# assignments = clustered.assignments
-# length(unique(assignments))
-# Ass = Dict{Int,Vector{Int}}()
-# for (i,c) in enumerate(clustered.assignments)
-#     if haskey(Ass, c)
-#         push!(Ass[c], i)
-#     else
-#         Ass[c] = [i]
-#     end
-# end
-# C = collect(values(Ass))
+# 
+# Clustering
+# 
 
-radius = 0.5
+# radius = 4e-2  # UMAP + count (wit MAX_count normalization)
+# radius = 1e-1  # UMAP + KATE.normalize
+# radius = 1e-2   # DeepKATE + count (without MAX_count normalization)
+radius = 1e-8   # DeepKATE + count (wit MAX_count normalization)
+# radius = 1e-4   # DeepKATE + KATE.normalize + 1 Epoch
 clustered = dbscan(embedded, radius)
 
 assignments = clustering_to_assignments(clustered)
@@ -431,7 +432,7 @@ for (i,c) in enumerate(C_sorted[:])
     for (j,line) in enumerate(c)
         # if piped[line][1] == "at"
 
-        if length(piped[line]) > 3 && piped[line][min(end,3)] in ["ERROR","WARN"] #,"INFO"]
+        if length(piped[line]) > 3 && piped[line][min(end,1)] in ["\t"] # "ERROR","WARN","INFO"
             print_c = true
             break
         elseif i in outliers
