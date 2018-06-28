@@ -8,6 +8,7 @@ using Distances
 using LogClustering.ClusteringUtils
 using DataStructures
 using LogClustering.Validation
+using LogClustering.Sequence: rows, cols
 
 using Flux
 using Flux: throttle, crossentropy
@@ -135,10 +136,10 @@ for (i,line) in enumerate(file)
     
     pipe = vcat(map(term->String.(NLP.split_and_keep_splitter(term, r"[\:\=]+")), pipe)...)
 
-    # pipe = map(term->replace(term, IPv4, "%IPv4%"), pipe)
+    pipe = map(term->replace(term, IPv4, "%IPv4%"), pipe)
     pipe = map(term->replace(term, FLOAT, "%FLOAT%"), pipe)
     # pipe = map(term->replace(term, FILE, "%FILE%"), pipe)
-    # pipe = map(term->replace(term, VERSION, "%VERSION%"), pipe)
+    pipe = map(term->replace(term, VERSION, "%VERSION%"), pipe)
 
     pipe = map(term->replace(term, ID_HEX, "%ID_HEX%"), pipe)
     pipe = map(term->replace(term, HEX, "%HEX%"), pipe)
@@ -249,12 +250,14 @@ function train_model(doc::Normalized, seed::Integer)
     activate = sin
 
     m = Chain(
-        KATE.KCompetetive(N, 100, tanh, k=25),
-        Dense(100, 5, activate),
-        KATE.KCompetetive(5, L, tanh, k=L),
-        Dense(L, 5, activate),
-        Dense(5, 100, activate),
-        Dense(100, N, sigmoid)
+        # KATE.KCompetetive(N, 100, tanh, k=25),
+        # Dense(100, 5, activate),
+        # KATE.KCompetetive(5, L, tanh, k=L),
+        # Dense(L, 5, activate),
+        # Dense(5, 100, activate),
+        # Dense(100, N, sigmoid)
+        KATE.KCompetetive(N, L, tanh, k=25),
+        Dense(L, N, sigmoid)
     )
 
     function loss(xs, ys)
@@ -270,23 +273,38 @@ function train_model(doc::Normalized, seed::Integer)
 
     opt = Flux.ADAM(params(m))
 
-    for e = 1:1
-        info("Epoch $e")
-        Flux.train!(
-            loss,
-            zip(Xs, Ys),
-            opt,
-            cb = throttle(callback, 5))
-    end
+    # for e = 1:1
+    #     info("Epoch $e")
+    #     Flux.train!(
+    #         loss,
+    #         zip(Xs, Ys),
+    #         opt,
+    #         cb = throttle(callback, 5))
+    # end
 
     Flux.testmode!(m)
     m[1].active = false
-    m[3].active = false
+    # m[3].active = false
     m
 end
 
 model = train_model(normalized, seed)
-embedded = hcat(Flux.data.(model[1:3].(normalized))...)
+embedded = hcat(Flux.data.(model[1:1].(normalized))...)
+generated = hcat(Flux.data.(model.(normalized))...)
+
+
+# reconstruction_error_se = [sum(line) for line in rows((normalized_matrix .- generated').^2)]
+reconstruction_error_abs = [sum(line) for line in rows(abs.(normalized_matrix .- generated'))]
+# std(reconstruction_error_se)
+std(reconstruction_error_abs)
+# maximum(reconstruction_error_abs)
+# minimum(reconstruction_error_abs)
+mean_error = mean(reconstruction_error_abs)
+median_error = median(reconstruction_error_abs)
+
+reconstruction_error_abs[indmax(reconstruction_error_abs)] - mean_error
+reconstruction_error_abs[indmin(reconstruction_error_abs)] - mean_error
+reconstruction_error_abs[rand(1:6073)] - mean_error
 
 
 #
@@ -323,6 +341,7 @@ embedded_t = embedded'
 # radius = 1e-2   # DeepKATE + count (without MAX_count normalization)
 radius = 1.8e-3   # DeepKATE + count (wit MAX_count normalization)
 # radius = 1e-4   # DeepKATE + KATE.normalize + 1 Epoch
+radius = 3e-2 # untrained + DATETIME only
 clustered = dbscan(embedded, radius)
 
 assignments = clustering_to_assignments(clustered)
