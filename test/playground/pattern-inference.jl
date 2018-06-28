@@ -21,7 +21,8 @@ using Flux: throttle, crossentropy
 # file = readlines("data/datasets/RCE/2014-12-02_08-58-09_1048.log")
 # file = readlines("data/datasets/RCE/2018-02-09_10-04-25_1286.log")
 # file = readlines("data/datasets/RCE/2017-10-19_10-29-57_1387.log")
-file = readlines("data/datasets/RCE/2017-02-24_10-26-01_6073.log")
+# file = readlines("data/datasets/RCE/2017-02-24_10-26-01_6073.log")
+file = readlines("/home/sebastian/data/log/1999_kddcup.data.corrected")[1:min(end,10_000)]
 N = length(file)
 
 # DATETIME = r"[a-zA-Z]{3} [0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}"
@@ -119,7 +120,8 @@ for (i,line) in enumerate(file)
     # pipe = replace(pipe, DATETIME, "%DATETIME%")
     pipe = replace(pipe, RCE_DATETIME, "%DATETIME%")
     
-    pipe = String.(NLP.split_and_keep_splitter(pipe, r"\s+|[\,\;\(\)\[\]\]\{\}\<\>\|\'\"\#]+"))
+    pipe = String.(NLP.split_and_keep_splitter(pipe, r"\,"))
+    # pipe = String.(NLP.split_and_keep_splitter(pipe, r"\s+|[\,\;\(\)\[\]\]\{\}\<\>\|\'\"\#]+"))
 
     # # pipe = vcat(map(term->String.(NLP.split_and_keep_splitter(term, r"[\w\p{L}\-\_\.\:\\\/\%]+")), pipe)...)
     
@@ -134,17 +136,17 @@ for (i,line) in enumerate(file)
     # pipe = map(term->replace(term, MAC, "%MAC%"), pipe)
     # pipe = map(term->replace(term, IPv6, "%IPv6%"), pipe)
     
-    pipe = vcat(map(term->String.(NLP.split_and_keep_splitter(term, r"[\:\=]+")), pipe)...)
+    # pipe = vcat(map(term->String.(NLP.split_and_keep_splitter(term, r"[\:\=]+")), pipe)...)
 
-    pipe = map(term->replace(term, IPv4, "%IPv4%"), pipe)
-    pipe = map(term->replace(term, FLOAT, "%FLOAT%"), pipe)
+    # pipe = map(term->replace(term, IPv4, "%IPv4%"), pipe)
+    # pipe = map(term->replace(term, FLOAT, "%FLOAT%"), pipe)
     # pipe = map(term->replace(term, FILE, "%FILE%"), pipe)
-    pipe = map(term->replace(term, VERSION, "%VERSION%"), pipe)
+    # pipe = map(term->replace(term, VERSION, "%VERSION%"), pipe)
 
-    pipe = map(term->replace(term, ID_HEX, "%ID_HEX%"), pipe)
-    pipe = map(term->replace(term, HEX, "%HEX%"), pipe)
+    # pipe = map(term->replace(term, ID_HEX, "%ID_HEX%"), pipe)
+    # pipe = map(term->replace(term, HEX, "%HEX%"), pipe)
 
-    pipe = map(term->replace(term, ID, "%ID%"), pipe)
+    # pipe = map(term->replace(term, ID, "%ID%"), pipe)
 
     # pipe = vcat(map(term->String.(NLP.split_and_keep_splitter(term, r"[\w\p{L}\-\_\%]+")), pipe)...)
     # pipe = vcat(map(term->String.(NLP.split(term, r"[^\w\p{L}\-\_\%]+", keep=false)), pipe)...)
@@ -153,9 +155,9 @@ for (i,line) in enumerate(file)
     # # pipe = vcat(map(term->String.(NLP.split(term, r"[^\w\p{L}\-\_\.\%]+", keep=false)), pipe)...)
     # pipe = map(term->replace(term, IPv4, "%IPv4%"), pipe)
     
-    pipe = vcat(map(term->String.(NLP.split_and_keep_splitter(term, r"[\-\_\.]+")), pipe)...)
+    # pipe = vcat(map(term->String.(NLP.split_and_keep_splitter(term, r"[\-\_\.]+")), pipe)...)
 
-    pipe = map(term->replace(term, INT, "%INT%"), pipe)
+    # pipe = map(term->replace(term, INT, "%INT%"), pipe)
     
     # pipe = map(term->replace(term, MIN, "%MINUTES%"), pipe)
     # pipe = map(term->replace(term, SEC, "%SECONDS%"), pipe)
@@ -342,6 +344,7 @@ embedded_t = embedded'
 radius = 1.8e-3   # DeepKATE + count (wit MAX_count normalization)
 # radius = 1e-4   # DeepKATE + KATE.normalize + 1 Epoch
 radius = 3e-2 # untrained + DATETIME only
+radius = 8e-2 # untrained + DATETIME only
 clustered = dbscan(embedded, radius)
 
 assignments = clustering_to_assignments(clustered)
@@ -483,8 +486,9 @@ for (i,c) in enumerate(C_sorted[:])
         # if piped[line][1] == "at"
 
         # if length(piped[line]) > 3 && piped[line][min(end,1)] in ["\t"]
-        if length(piped[line]) > 3 && piped[line][min(end,3)] in ["ERROR"] # "ERROR","WARN","INFO"
-            print_c = true
+        # if length(piped[line]) > 3 && piped[line][min(end,3)] in ["ERROR"] # "ERROR","WARN","INFO"
+        if length(piped[line]) > 3 && !(piped[line][end] == "normal.")
+            # print_c = true
             break
         elseif i in outliers
             # print_c = true
@@ -512,7 +516,8 @@ function accuracy(piped::NLP.Document, clustering::ClusteringUtils.NestedAssignm
         types = Dict{String,Int64}()
         for line in cluster
             if length(piped[line]) >= 3
-                tpe = piped[line][3]
+                # tpe = piped[line][3]
+                tpe = piped[line][end]
                 if haskey(types, tpe)
                     types[tpe] += 1
                 else
@@ -521,7 +526,8 @@ function accuracy(piped::NLP.Document, clustering::ClusteringUtils.NestedAssignm
             end
         end
         if length(keys(types)) > 1
-            if any(key in ["ERROR", "WARN", "INFO"] for key in keys(types))
+            # if any(key in ["ERROR", "WARN", "INFO"] for key in keys(types))
+            if !all(key == "normal." for key in keys(types))
                 @show c_i, keys(types)
                 # get all values that do not belong the majority of the cluster
                 error += sum(sort(collect(values(types)))[1:end-1])
@@ -540,9 +546,11 @@ DC_refined = [view(embedded,:,c) for c in C_refined]
 accuracy(piped, C)
 accuracy(piped, C_refined)
 
+validation1, validation2 = 0.0, 0.0
 validation1 = sdbw(embedded, C, dense=false)
 validation2 = sdbw(embedded, C_refined, dense=false)
 
+betacv1, betacv2 = 0.0, 0.0
 betacv1 = betacv(DC_raw)
 betacv2 = betacv(DC_refined)
 
