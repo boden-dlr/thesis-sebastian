@@ -21,8 +21,8 @@ using Flux: throttle, crossentropy
 # file = readlines("data/datasets/RCE/2014-12-02_08-58-09_1048.log")
 # file = readlines("data/datasets/RCE/2018-02-09_10-04-25_1286.log")
 # file = readlines("data/datasets/RCE/2017-10-19_10-29-57_1387.log")
-# file = readlines("data/datasets/RCE/2017-02-24_10-26-01_6073.log")
-file = readlines("/home/sebastian/data/log/1999_kddcup.data.corrected")[1:min(end,10_000)]
+file = readlines("data/datasets/RCE/2017-02-24_10-26-01_6073.log")
+# file = readlines("/home/sebastian/data/log/1999_kddcup.data.corrected")[rand(1:4_898_431, 10_000)]
 N = length(file)
 
 # DATETIME = r"[a-zA-Z]{3} [0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}"
@@ -217,6 +217,7 @@ normalized = map(
     line->Float64.(rpad(
             # map(term->lookup[term], line),
             map(term->lookup[term] / MAX_count, line[1:min(MAX_length,end)]),
+            # map(term->lookup[term] / MAX_count, line[1:end-1]),
             MAX_length, 1.0)),
     piped)
 
@@ -252,14 +253,14 @@ function train_model(doc::Normalized, seed::Integer)
     activate = sin
 
     m = Chain(
-        # KATE.KCompetetive(N, 100, tanh, k=25),
-        # Dense(100, 5, activate),
-        # KATE.KCompetetive(5, L, tanh, k=L),
-        # Dense(L, 5, activate),
-        # Dense(5, 100, activate),
-        # Dense(100, N, sigmoid)
-        KATE.KCompetetive(N, L, tanh, k=25),
-        Dense(L, N, sigmoid)
+        KATE.KCompetetive(N, 100, tanh, k=25),
+        Dense(100, 5, activate),
+        KATE.KCompetetive(5, L, tanh, k=L),
+        Dense(L, 5, activate),
+        Dense(5, 100, activate),
+        Dense(100, N, sigmoid)
+        # KATE.KCompetetive(N, L, tanh, k=25),
+        # Dense(L, N, sigmoid)
     )
 
     function loss(xs, ys)
@@ -275,14 +276,14 @@ function train_model(doc::Normalized, seed::Integer)
 
     opt = Flux.ADAM(params(m))
 
-    # for e = 1:1
-    #     info("Epoch $e")
-    #     Flux.train!(
-    #         loss,
-    #         zip(Xs, Ys),
-    #         opt,
-    #         cb = throttle(callback, 5))
-    # end
+    for e = 1:2
+        info("Epoch $e")
+        Flux.train!(
+            loss,
+            zip(Xs, Ys),
+            opt,
+            cb = throttle(callback, 5))
+    end
 
     Flux.testmode!(m)
     m[1].active = false
@@ -344,7 +345,9 @@ embedded_t = embedded'
 radius = 1.8e-3   # DeepKATE + count (wit MAX_count normalization)
 # radius = 1e-4   # DeepKATE + KATE.normalize + 1 Epoch
 radius = 3e-2 # untrained + DATETIME only
-radius = 8e-2 # untrained + DATETIME only
+radius = 8e-2 # KDD 100.000
+radius = 3e-1 # KDD  10.000 rand
+radius = 8e-3 # KDD  10.000 rand - no labels
 clustered = dbscan(embedded, radius)
 
 assignments = clustering_to_assignments(clustered)
@@ -486,9 +489,9 @@ for (i,c) in enumerate(C_sorted[:])
         # if piped[line][1] == "at"
 
         # if length(piped[line]) > 3 && piped[line][min(end,1)] in ["\t"]
-        # if length(piped[line]) > 3 && piped[line][min(end,3)] in ["ERROR"] # "ERROR","WARN","INFO"
-        if length(piped[line]) > 3 && !(piped[line][end] == "normal.")
-            # print_c = true
+        if length(piped[line]) > 3 && piped[line][min(end,3)] in ["ERROR"] # "ERROR","WARN","INFO"
+        # if length(piped[line]) > 3 && !(piped[line][end] == "normal.")
+            print_c = true
             break
         elseif i in outliers
             # print_c = true
@@ -526,8 +529,8 @@ function accuracy(piped::NLP.Document, clustering::ClusteringUtils.NestedAssignm
             end
         end
         if length(keys(types)) > 1
-            # if any(key in ["ERROR", "WARN", "INFO"] for key in keys(types))
-            if !all(key == "normal." for key in keys(types))
+            if any(key in ["ERROR", "WARN", "INFO"] for key in keys(types))
+            # if !all(key == "normal." for key in keys(types))
                 @show c_i, keys(types)
                 # get all values that do not belong the majority of the cluster
                 error += sum(sort(collect(values(types)))[1:end-1])
