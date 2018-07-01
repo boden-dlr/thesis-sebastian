@@ -118,12 +118,12 @@ for (i,line) in enumerate(file)
     
     pipe = deepcopy(line)
 
-    pipe = replace(pipe, SYSLOG_DATETIME, "%SYSLOG_DATETIME%")
-    pipe = replace(pipe, RCE_DATETIME, "%RCE_DATETIME%")
+    pipe = replace(pipe, SYSLOG_DATETIME, "%SYSLOGDATETIME%")
+    pipe = replace(pipe, RCE_DATETIME, "%RCEDATETIME%")
     
     # pipe = String.(NLP.split_and_keep_splitter(pipe, r"\,"))
-    pipe = String.(NLP.split_and_keep_splitter(pipe, r"\s+"))
-    # pipe = String.(NLP.split_and_keep_splitter(pipe, r"\s+|[\,\;\(\)\[\]\]\{\}\<\>\|\'\"\#]+"))
+    # pipe = String.(NLP.split_and_keep_splitter(pipe, r"\s+"))
+    pipe = String.(NLP.split_and_keep_splitter(pipe, r"\s+|[\,\;\(\)\[\]\]\{\}\<\>\|\'\"\#]+"))
 
     # # pipe = vcat(map(term->String.(NLP.split_and_keep_splitter(term, r"[\w\p{L}\-\_\.\:\\\/\%]+")), pipe)...)
     
@@ -135,20 +135,20 @@ for (i,line) in enumerate(file)
     # pipe = map(term->replace(term, DATE, "%DATE%"), pipe)
     # pipe = map(term->replace(term, TIME, "%TIME%"), pipe)
 
-    # pipe = map(term->replace(term, MAC, "%MAC%"), pipe)
+    pipe = map(term->replace(term, MAC, "%MAC%"), pipe)
     # pipe = map(term->replace(term, IPv6, "%IPv6%"), pipe)
     
-    # pipe = vcat(map(term->String.(NLP.split_and_keep_splitter(term, r"[\:\=]+")), pipe)...)
+    pipe = vcat(map(term->String.(NLP.split_and_keep_splitter(term, r"[\:\=]+")), pipe)...)
 
-    # pipe = map(term->replace(term, IPv4, "%IPv4%"), pipe)
-    # pipe = map(term->replace(term, FLOAT, "%FLOAT%"), pipe)
+    pipe = map(term->replace(term, IPv4, "%IPv4%"), pipe)
+    pipe = map(term->replace(term, FLOAT, "%FLOAT%"), pipe)
     # pipe = map(term->replace(term, FILE, "%FILE%"), pipe)
     # pipe = map(term->replace(term, VERSION, "%VERSION%"), pipe)
 
-    # pipe = map(term->replace(term, ID_HEX, "%ID_HEX%"), pipe)
-    # pipe = map(term->replace(term, HEX, "%HEX%"), pipe)
+    pipe = map(term->replace(term, ID_HEX, "%ID_HEX%"), pipe)
+    pipe = map(term->replace(term, HEX, "%HEX%"), pipe)
 
-    # pipe = map(term->replace(term, ID, "%ID%"), pipe)
+    pipe = map(term->replace(term, ID, "%ID%"), pipe)
 
     # pipe = vcat(map(term->String.(NLP.split_and_keep_splitter(term, r"[\w\p{L}\-\_\%]+")), pipe)...)
     # pipe = vcat(map(term->String.(NLP.split(term, r"[^\w\p{L}\-\_\%]+", keep=false)), pipe)...)
@@ -157,9 +157,9 @@ for (i,line) in enumerate(file)
     # # pipe = vcat(map(term->String.(NLP.split(term, r"[^\w\p{L}\-\_\.\%]+", keep=false)), pipe)...)
     # pipe = map(term->replace(term, IPv4, "%IPv4%"), pipe)
     
-    # pipe = vcat(map(term->String.(NLP.split_and_keep_splitter(term, r"[\-\_\.]+")), pipe)...)
+    pipe = vcat(map(term->String.(NLP.split_and_keep_splitter(term, r"[\-\_\.]+")), pipe)...)
 
-    # pipe = map(term->replace(term, INT, "%INT%"), pipe)
+    pipe = map(term->replace(term, INT, "%INT%"), pipe)
     
     # pipe = map(term->replace(term, MIN, "%MINUTES%"), pipe)
     # pipe = map(term->replace(term, SEC, "%SECONDS%"), pipe)
@@ -257,7 +257,7 @@ function train_model(doc::Normalized, seed::Integer)
     Ys = doc[2:end]
     N = length(doc[1]) # normalized line (max line length)
     L = n_components
-    activate = atan
+    activate = bent
 
     m = Chain(
         KATE.KCompetetive(N, 100, tanh, k=25),
