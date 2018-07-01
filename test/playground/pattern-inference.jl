@@ -118,10 +118,11 @@ for (i,line) in enumerate(file)
     
     pipe = deepcopy(line)
 
-    pipe = replace(pipe, SYSLOG_DATETIME, "%DATETIME%")
-    pipe = replace(pipe, RCE_DATETIME, "%DATETIME%")
+    pipe = replace(pipe, SYSLOG_DATETIME, "%SYSLOG_DATETIME%")
+    pipe = replace(pipe, RCE_DATETIME, "%RCE_DATETIME%")
     
-    pipe = String.(NLP.split_and_keep_splitter(pipe, r"\,"))
+    # pipe = String.(NLP.split_and_keep_splitter(pipe, r"\,"))
+    pipe = String.(NLP.split_and_keep_splitter(pipe, r"\s+"))
     # pipe = String.(NLP.split_and_keep_splitter(pipe, r"\s+|[\,\;\(\)\[\]\]\{\}\<\>\|\'\"\#]+"))
 
     # # pipe = vcat(map(term->String.(NLP.split_and_keep_splitter(term, r"[\w\p{L}\-\_\.\:\\\/\%]+")), pipe)...)
@@ -245,6 +246,10 @@ n_components=3
 # embedded_t = U[:fit_transform](normalized_matrix)
 # embedded = embedded_t'
 
+# activation function
+function bent(x)
+    ((sqrt(x^2+1)-1)/2)+x
+end
 
 function train_model(doc::Normalized, seed::Integer)
     srand(seed)
@@ -252,7 +257,7 @@ function train_model(doc::Normalized, seed::Integer)
     Ys = doc[2:end]
     N = length(doc[1]) # normalized line (max line length)
     L = n_components
-    activate = sin
+    activate = atan
 
     m = Chain(
         KATE.KCompetetive(N, 100, tanh, k=25),
