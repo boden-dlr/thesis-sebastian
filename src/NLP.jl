@@ -46,14 +46,24 @@ warnings = Dict(
 )
 
 function terms(document::Document)::Terms
-    uniques = map(line -> Terms(unique(line)), document)
-    reduce(union, Terms(), uniques)
+    terms = Terms()
+    for line in document
+        for term in line
+            if !(term in terms)
+                push!(terms, term)
+            end
+        end
+    end
+    terms
 end
 
 
 function terms(corpus::Corpus)::Terms
-    ts = map(doc -> terms(doc), corpus)
-    reduce(union, Terms(), ts)
+    terms = Terms()
+    for doc in corpus
+        union(terms, terms(doc))
+    end
+    terms
 end
 
 
@@ -76,7 +86,11 @@ function count_terms(document::Document;
     end
 
     wc = Dict{String,Int64}(map(term -> term => 0, terms))
-    map(line -> map(term -> wc[term] += 1, line), document)
+    for line in document
+        for term in line
+            wc[term] += 1
+        end
+    end
 
     TermCount(sort(
         collect(wc),
