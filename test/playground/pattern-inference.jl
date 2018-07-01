@@ -251,13 +251,17 @@ function bent(x)
     ((sqrt(x^2+1)-1)/2)+x
 end
 
+function flipped_cos(x)
+    x <= 0 ? cos(x)-1 : 1-cos(x)
+end
+
 function train_model(doc::Normalized, seed::Integer)
     srand(seed)
     Xs = doc[1:end-1]
     Ys = doc[2:end]
     N = length(doc[1]) # normalized line (max line length)
     L = n_components
-    activate = bent
+    activate = flipped_cos
 
     m = Chain(
         KATE.KCompetetive(N, 100, tanh, k=25),
