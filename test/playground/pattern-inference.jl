@@ -287,7 +287,7 @@ function train_model(doc::Normalized, seed::Integer)
 
     opt = Flux.ADAM(params(m))
 
-    for e = 1:2
+    for e = 1:0
         info("Epoch $e")
         Flux.train!(
             loss,
@@ -530,8 +530,8 @@ function accuracy(piped::NLP.Document, clustering::ClusteringUtils.NestedAssignm
         types = Dict{String,Int64}()
         for line in cluster
             if length(piped[line]) >= 3
-                # tpe = piped[line][3]
-                tpe = piped[line][end]
+                tpe = piped[line][3]        # RCE logfile
+                # tpe = piped[line][end]    # KDD 1999
                 if haskey(types, tpe)
                     types[tpe] += 1
                 else
