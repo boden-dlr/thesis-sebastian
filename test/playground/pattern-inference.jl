@@ -135,15 +135,15 @@ for (i,line) in enumerate(file)
     # pipe = map(term->replace(term, DATE, "%DATE%"), pipe)
     # pipe = map(term->replace(term, TIME, "%TIME%"), pipe)
 
-    pipe = map(term->replace(term, MAC, "%MAC%"), pipe)
+    # pipe = map(term->replace(term, MAC, "%MAC%"), pipe)
     # pipe = map(term->replace(term, IPv6, "%IPv6%"), pipe)
     
     pipe = vcat(map(term->String.(NLP.split_and_keep_splitter(term, r"[\:\=]+")), pipe)...)
 
     pipe = map(term->replace(term, IPv4, "%IPv4%"), pipe)
     pipe = map(term->replace(term, FLOAT, "%FLOAT%"), pipe)
-    # pipe = map(term->replace(term, FILE, "%FILE%"), pipe)
-    # pipe = map(term->replace(term, VERSION, "%VERSION%"), pipe)
+    # # pipe = map(term->replace(term, FILE, "%FILE%"), pipe)
+    # # pipe = map(term->replace(term, VERSION, "%VERSION%"), pipe)
 
     pipe = map(term->replace(term, ID_HEX, "%ID_HEX%"), pipe)
     pipe = map(term->replace(term, HEX, "%HEX%"), pipe)
@@ -251,9 +251,6 @@ function bent(x)
     ((sqrt(x^2+1)-1)/2)+x
 end
 
-function flipped_cos(x)
-    x <= 0 ? cos(x)-1 : 1-cos(x)
-end
 
 function train_model(doc::Normalized, seed::Integer)
     srand(seed)
@@ -261,7 +258,7 @@ function train_model(doc::Normalized, seed::Integer)
     Ys = doc[2:end]
     N = length(doc[1]) # normalized line (max line length)
     L = n_components
-    activate = flipped_cos
+    activate = sin
 
     m = Chain(
         KATE.KCompetetive(N, 100, tanh, k=25),
@@ -287,7 +284,7 @@ function train_model(doc::Normalized, seed::Integer)
 
     opt = Flux.ADAM(params(m))
 
-    for e = 1:0
+    for e = 1:1
         info("Epoch $e")
         Flux.train!(
             loss,
@@ -316,7 +313,9 @@ std(reconstruction_error_abs)
 mean_error = mean(reconstruction_error_abs)
 median_error = median(reconstruction_error_abs)
 
+indmax(reconstruction_error_abs)
 reconstruction_error_abs[indmax(reconstruction_error_abs)] - mean_error
+indmin(reconstruction_error_abs)
 reconstruction_error_abs[indmin(reconstruction_error_abs)] - mean_error
 reconstruction_error_abs[rand(1:6073)] - mean_error
 
