@@ -23,9 +23,10 @@ using Flux: throttle, crossentropy
 # file = readlines("data/datasets/RCE/2017-10-19_10-29-57_1387.log")
 file = readlines("data/datasets/RCE/2017-02-24_10-26-01_6073.log")
 # file = readlines("/home/sebastian/data/log/1999_kddcup.data.corrected")[rand(1:4_898_431, 10_000)]
+# file = readlines("/home/sebastian/data/log/event-logs/real/BPI Challenge 2017.xes")[rand(1:4_898_431, 10_000)]
 N = length(file)
 
-# DATETIME = r"[a-zA-Z]{3} [0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}"
+SYSLOG_DATETIME = r"[a-zA-Z]{3} [0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}"
 RCE_DATETIME = r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}"
 
 DATE = r"^\d{4}-\d{2}-\d{2}$"
@@ -117,7 +118,7 @@ for (i,line) in enumerate(file)
     
     pipe = deepcopy(line)
 
-    # pipe = replace(pipe, DATETIME, "%DATETIME%")
+    pipe = replace(pipe, SYSLOG_DATETIME, "%DATETIME%")
     pipe = replace(pipe, RCE_DATETIME, "%DATETIME%")
     
     pipe = String.(NLP.split_and_keep_splitter(pipe, r"\,"))
@@ -228,8 +229,9 @@ normalized_matrix = hcat(normalized...)'
 # 
 # embed input (encoded phrases)
 # 
-seed = rand(1:10000)
+# seed = rand(1:10000)
 # seed = 7040
+seed = 7285
 
 n_neighbors=10
 n_components=3
@@ -287,12 +289,12 @@ function train_model(doc::Normalized, seed::Integer)
 
     Flux.testmode!(m)
     m[1].active = false
-    # m[3].active = false
+    m[3].active = false
     m
 end
 
 model = train_model(normalized, seed)
-embedded = hcat(Flux.data.(model[1:1].(normalized))...)
+embedded = hcat(Flux.data.(model[1:3].(normalized))...)
 generated = hcat(Flux.data.(model.(normalized))...)
 
 
