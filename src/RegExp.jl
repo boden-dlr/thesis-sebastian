@@ -3,7 +3,11 @@ module RegExp
 using LogClustering.Sequence: flatmap
 using DataStructures
 
-function infer(set::Array{Array{String,1},1}, specific=true)::Regex
+function infer(set::Array{Array{String,1},1},
+    specific=true,
+    seperator=".",
+    optional="*?",
+    required="+?")::Regex
     commons = Dict{String, Int64}()
     vocabulary = Dict{String,Int64}()
     occurences = Dict{String,Vector{Tuple{Int64,Int64}}}()
@@ -67,7 +71,7 @@ function infer(set::Array{Array{String,1},1}, specific=true)::Regex
 
     timestamp = "[\\d\\-]{10,10}\\ [\\d\\:\\,]{12,12}"
     # seperator = "[^\\p{L}]"
-    seperator = "."
+    # seperator = "."
     pattern = ""
     for (f, fix) in enumerate(fixpoints)
         fix_pattern = string(commons_last[fix], seperator , "+?")
@@ -104,7 +108,7 @@ function infer(set::Array{Array{String,1},1}, specific=true)::Regex
                     rng = previous+1:fix-1
                     for r in rng
                         # specs = string("(?:", join(collect(Set(flatmap(identity, collect(collect(inverted[r]) for r in rng)))),"|"), "){1,1}")
-                        specs = string("(?:", join(collect(inverted[r]),"|"), "){1,1}")
+                        specs = string("(?:", join(collect(inverted[r]),"|"), ")") #{1,1}
                         # @show specs
                         pattern = string(pattern, specs, seperator, "*?")
                     end
@@ -134,9 +138,9 @@ function infer(set::Array{Array{String,1},1}, specific=true)::Regex
         rng = fixpoints[end]+1:longest
         for r in rng
             if r > shortest
-                specs = string("(?:", join(collect(inverted[r]),"|"), "){0,1}")
+                specs = string("(?:", join(collect(inverted[r]),"|"), ")?") #{0,1}
             else
-                specs = string("(?:", join(collect(inverted[r]),"|"), "){1,1}")
+                specs = string("(?:", join(collect(inverted[r]),"|"), ")") #{1,1}
             end
             pattern = string(pattern, specs, seperator, "*?")
         end
