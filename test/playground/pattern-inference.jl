@@ -17,11 +17,11 @@ using Flux: throttle, crossentropy
 # file = readlines("data/datasets/test/syslog")
 # file = readlines("data/datasets/RCE/2017-11-28_08-08-42_129250.log")
 # file = readlines("data/datasets/RCE/2018-03-01_15-11-18_51750.log")
-# file = readlines("data/datasets/RCE/2018-03-01_15-07-59_7296.log")
+file = readlines("data/datasets/RCE/2018-03-01_15-07-59_7296.log")
 # file = readlines("data/datasets/RCE/2014-12-02_08-58-09_1048.log")
 # file = readlines("data/datasets/RCE/2018-02-09_10-04-25_1286.log")
 # file = readlines("data/datasets/RCE/2017-10-19_10-29-57_1387.log")
-file = readlines("data/datasets/RCE/2017-02-24_10-26-01_6073.log")
+# file = readlines("data/datasets/RCE/2017-02-24_10-26-01_6073.log")
 # file = readlines("/home/sebastian/data/log/1999_kddcup.data.corrected")[rand(1:4_898_431, 10_000)]
 # file = readlines("/home/sebastian/data/log/event-logs/real/BPI Challenge 2017.xes")[rand(1:4_898_431, 10_000)]
 N = length(file)
@@ -127,7 +127,7 @@ for (i,line) in enumerate(file)
 
     # # pipe = vcat(map(term->String.(NLP.split_and_keep_splitter(term, r"[\w\p{L}\-\_\.\:\\\/\%]+")), pipe)...)
     
-    # pipe = map(term->replace(term, PATH, "%PATH%"), pipe)
+    pipe = map(term->replace(term, PATH, "%PATH%"), pipe)
     # pipe = map(term->replace(term, URI, "%URI%"), pipe)
 
     # pipe = vcat(map(term->String.(NLP.split_and_keep_splitter(term, r"[\w\p{L}\-\_\.\:\%]+")), pipe)...)
@@ -245,11 +245,6 @@ n_components=3
 
 # embedded_t = U[:fit_transform](normalized_matrix)
 # embedded = embedded_t'
-
-# activation function
-function bent(x)
-    ((sqrt(x^2+1)-1)/2)+x
-end
 
 
 function train_model(doc::Normalized, seed::Integer)
@@ -595,3 +590,16 @@ savefig(figures, string(
     "betacv_raw=", format_float(betacv1), "_",
     "betacv_refined=", format_float(betacv2),
     ".png"))
+
+
+using LogClustering.RegExp
+
+for line in piped[C_sorted[1]]
+    println(line)
+end
+
+for i in 1:3
+    @show RegExp.infer(piped[C_sorted[i]])
+end
+
+piped[C_sorted[3]]
