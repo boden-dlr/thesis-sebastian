@@ -4,6 +4,31 @@ using Plots.PlotMeasures
 using PlotRecipes
 gr()
 
+
+function bent(x)
+    ((sqrt(x^2+1)-1)/2)+x
+end
+
+# flipped cos (S. Wiesendahl)
+function flipped_cos(x)
+    x <= 0 ?
+        cos(x)-1 :
+        1-cos(x)
+end
+
+# inv. flipped cos (S. Wiesendahl)
+function inv_flipped_cos(x)
+    x <= 0 ?
+        ( x >= -1 ?
+            -acos(x+1) : 
+            # 0.01 * x - pi/2) :
+            - pi/2) :
+        ( x <= 1 ? 
+            acos(-x+1) : 
+            pi/2)
+end
+
+
 x = linspace(-pi,pi,10000);
 
 p = plot(x, [
@@ -14,11 +39,9 @@ p = plot(x, [
     sin,
     relu,
     leakyrelu,
-    # bent identity
-    x -> ((sqrt(x^2+1)-1)/2)+x,
-    # flipped cos (S. Wiesendahl)
-    # x -> x <= 0 ? cos(x)-1 : 1-cos(x),
-    # x -> x <= 0 ? exp(cos(x)-1)-1 : log(1-cos(x)+1),
+    bent,
+    # flipped_cos,
+    # inv_flipped_cos,
     ],
     labels=[
         "1. identity",
@@ -29,10 +52,10 @@ p = plot(x, [
         "6. ReLU",
         "7. leaky ReLU",
         "8. Bent identity",
-        # "flipped cos",
-        # "flipped exp cos",
+        # "9. flipped cos",
+        # "10. inv flipped cos",
         ],
-    ylims = (-1.5,1.5),
+    ylims = (-pi/2,pi/2),
     legend = :bottomright,
     style = :auto,
     line = 3)
