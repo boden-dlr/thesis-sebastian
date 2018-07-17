@@ -15,7 +15,7 @@ function grow{N<:Number}(sequence::Array{N,1}, vertical, primer, min_sup; overla
     #TODO: inter vs intra overlapping...
 
     extended = Dict{Array{N,1},Array{Tuple{Int64,Int64},1}}()
-    
+
     for pattern in keys(primer)
         # TODO: try only alphabet elems...
         # for elem in keys(vertical) # alphabet NOTE: if unique filter by pattern elements
@@ -54,11 +54,11 @@ function grow{N<:Number}(sequence::Array{N,1}, vertical, primer, min_sup; overla
             extended[pattern] = future[pattern]
         end
     end
-    
+
     for pattern in keys(primer)
         extended[[p for p in pattern]] = primer[pattern]
     end
-    
+
     extended
 end
 
@@ -95,10 +95,11 @@ function grow_depth_first!{N<:Number}(
             foundat = Vector{Int64}()
             s_extension = vcat(pattern, s_ext)
             for n in 1:support-1
-                # @show s_extension, pattern, db[pattern]
                 start = db[pattern][n][end] + 1
-                stop  = db[pattern][n+1][1] - 1
+                stop  = db[pattern][n+1][1] - 1 # NOTE: Maybe?
+                # stop  = db[pattern][end][end] + 1
                 for candidate in vertical[s_ext] # TODO: this is linear, could be log(n)
+                    @show depth, support, n, s_extension, pattern, s_ext, db[pattern], start, stop, gap, candidate, foundat
                     if candidate > stop
                         break
                     end
@@ -106,13 +107,14 @@ function grow_depth_first!{N<:Number}(
                         add = false
                         if gap == -1
                             add = true
+                        # NOTE: this prunes a lot!
                         elseif gap >= 0 && candidate <= start+gap
                             add = true
                         end
                         if add
                             occurence = vcat(db[pattern][n], candidate)
                             # @show pattern, s_ext, candidate, start, stop
-                            # @show s_extension, occurence
+                            @show s_extension, occurence
                             if haskey(db, s_extension)
                                 if overlapping
                                     push!(db[s_extension], occurence)
@@ -127,12 +129,16 @@ function grow_depth_first!{N<:Number}(
                                 db[s_extension] = [occurence]
                                 push!(foundat, n)
                             end
+                            # println.(collect(db))
                             @show depth, s_extension, pattern, s_ext
                             @show occurence, foundat, candidate, start, stop
-                            println()
+                            println("end: add")
                         end
+                        println("end: if candidate")
                     end
+                    println("end: for candidate: $candidate")
                 end
+                println("end: support")
             end
 
             if length(foundat) >= min_sup
@@ -183,7 +189,7 @@ function mine_recurring{N<:Number}(sequence::Array{N,1}, min_sup::Int64 = 1)
     result = grow(sequence, vertical, primer, min_sup)
 
     Dict(filter(kv->length(kv[2])>=min_sup, collect(result)))
-    
+
     # DataStructures.OrderedDict(sort(result), by=kv->kv[1][1])
 end
 
