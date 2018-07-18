@@ -20,10 +20,10 @@ data = Int64[1,2,3,5,4,5,6,1,2,3,7,6,5,4,1,2]
 
 # ----------------------------------------------------------------------
 
-min_sup     = 1
+min_sup     = 2
 unique      = false
 overlapping = false
-gap         = 0
+gap         = -1
 N = Int64
 
 sequence = data

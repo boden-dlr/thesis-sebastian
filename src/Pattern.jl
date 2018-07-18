@@ -94,10 +94,13 @@ function grow_depth_first!{N<:Number}(
             end
             foundat = Vector{Int64}()
             s_extension = vcat(pattern, s_ext)
-            for n in 1:support-1
+            # for n in 1:support-1
+            for n in 1:support
                 start = db[pattern][n][end] + 1
-                stop  = db[pattern][n+1][1] - 1 # NOTE: Maybe?
-                # stop  = db[pattern][end][end] + 1
+                stop = start
+                if n != support
+                    stop = db[pattern][n+1][1] - 1
+                end
                 for candidate in vertical[s_ext] # TODO: this is linear, could be log(n)
                     @show depth, support, n, s_extension, pattern, s_ext, db[pattern], start, stop, gap, candidate, foundat
                     if candidate > stop
@@ -152,7 +155,7 @@ function grow_depth_first!{N<:Number}(
                     depth = depth + 1)
 
                 # TODO: closed vs. maximal patterns
-                if set == :closed
+                if set == :closed && support <= min_sup # NOTE: this prunes a lot: support <= min_sup
                     # remove found occs from db[pattern]
                     d = 0
                     for i in foundat
