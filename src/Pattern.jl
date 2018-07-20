@@ -112,15 +112,15 @@ function grow_depth_first!{N<:Number}(
             continue
         end
         
-        # if !similar
-        #     pattern_as_set = Set(pattern)
-        #     if any(s-> intersect(s, pattern_as_set) == pattern_as_set, set_keys)
-        #         delete!(db, pattern)
-        #         continue
-        #     else
-        #         push!(set_keys, pattern_as_set)
-        #     end
-        # end
+        if !similar
+            pattern_as_set = Set(pattern)
+            if any(s-> intersect(s, pattern_as_set) == pattern_as_set, set_keys)
+                delete!(db, pattern)
+                continue
+            else
+                push!(set_keys, pattern_as_set)
+            end
+        end
 
         foundat_all = Set{Int64}()
         for s_ext in alphabet
