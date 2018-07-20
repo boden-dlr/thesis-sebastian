@@ -87,7 +87,8 @@ function grow_depth_first!{N<:Number}(
     unique      = false,
     similar     = true,
     overlapping = true,
-    gap         = -1, # -1 endless
+    gap_min     = 0,
+    gap_max     = -1, # -1 endless
     set         = :closed, # 'maximal' 'all'
     set_keys    = Set{Int64}[], # TODO: replace with sorted arrays
     # positions   = Dict{Int64,Int64}(), # TODO: replace with an array (assignments)
@@ -102,6 +103,11 @@ function grow_depth_first!{N<:Number}(
 
     if pointers == nothing
         pointers = fill(1, maximum(alphabet))
+    end
+
+    if gap_max < gap_min && gap_max != -1
+        error("`gap_max` must be equal or greater than `gap_min` or set to -1 for endless forward lookup.")
+        return db
     end
 
     for pattern in extend # patterns
@@ -135,11 +141,11 @@ function grow_depth_first!{N<:Number}(
 
             for i in 1:support # TODO: maybe change fors s_ext/support and use start/end to prune extensions by @view of sequence...
                 # if s_ext == 5 @show s_extension, n end
-                start = db[pattern][i][end] + 1
+                start = db[pattern][i][end] + 1 + gap_min
                 # stop = start+1
                 stop = len
-                if gap >= 0
-                    stop = min(len, start + gap)
+                if gap_max >= 0
+                    stop = min(len, start + gap_max - gap_min)
                 end
                 # if n != support
                 #     # stop = db[pattern][n+1][1] - 1
@@ -163,16 +169,19 @@ function grow_depth_first!{N<:Number}(
                 #     positions[s_ext] = start+1
                 # end
                 # @show s_ext, length(vertical[s_ext]), pointers[s_ext]
-                for (c_pos,candidate) in enumerate(vertical[s_ext][pointers[s_ext]:end])
+                # c_pos = 0
+                for candidate in @view vertical[s_ext][pointers[s_ext]:end]
                     # if s_ext == 5 @show s_extension, candidate, start, stop, gap end
                     # @show depth, support, n, s_extension, pattern, s_ext, db[pattern], start, stop, gap, candidate, foundat
                     # if s_ext in [3,4,5] @show "1.2", n, s_extension, candidate, start, stop, gap end
                     if candidate > stop
                         break
                     end
+
+                    # c_pos += 1
                     
                     if candidate >= start # && candidate <= stop #implicit
-                        pointers[s_ext] = c_pos
+                        pointers[s_ext] += 1
                         # if c < length(vertical[s_ext])
                         #     
                         # end
@@ -228,7 +237,8 @@ function grow_depth_first!{N<:Number}(
                     unique = unique,
                     similar = similar,
                     overlapping = overlapping,
-                    gap = gap,
+                    gap_min = gap_min,
+                    gap_max = gap_max,
                     set = set,
                     set_keys = set_keys,
                     # positions = positions,
@@ -237,6 +247,10 @@ function grow_depth_first!{N<:Number}(
             else
                 delete!(db, s_extension)
             end
+        end
+
+        for i in 1:length(pointers)
+            pointers[i] = 1
         end
 
         # @show foundat_all, pattern

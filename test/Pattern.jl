@@ -11,6 +11,10 @@ data = Int64[1,2,3,5,4,8,5,1,2,3,7,5,5,1,2,4]
 #            0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1
 #            1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6
 
+# data = Int64[1,2,2,3,3,3]
+# #            0 0 0 0 0 0 0
+# #            1 2 3 4 5 6 7
+
 sequence = data
 # sequence = rand(1:500, 50000)
 
@@ -20,7 +24,7 @@ sequence = data
 
 # min_sup = 2
 # @btime Pattern.mine_recurring(sequence,min_sup)
-# sequence = rand(1:100, 5000)
+# sequence = rand(1:400, 50000)
 # @time result = Pattern.mine_recurring(sequence,11)
 
 
@@ -29,15 +33,16 @@ sequence = data
 #
 
 # min_sup = round(Int64,50000/2^15)
-min_sup     = 2
+min_sup     = 300
 unique      = false
-similar     = true
+similar     = true     # for big datasets with small k of Clusters only...
 overlapping = true
-gap         = 1
+gap_min     = 0
+gap_max     = 0
 N = Int64
 
-# data = readcsv("data/kate/51750S_6154V_148N_3K_15E_1234seed_embedded_KATE_clustered_kmeans_51750P_300k.csv")
-# sequence = map(n->convert(Int64,n), data[:,1])
+data = readcsv("data/kate/51750S_6154V_148N_3K_15E_1234seed_embedded_KATE_clustered_kmeans_51750P_300k.csv")
+sequence = map(n->convert(Int64,n), data[:,1])
 # sequence = reverse(sequence)
 # consequents = [42]
 
@@ -56,8 +61,8 @@ db = OrderedDict{Vector{N},Vector{Vector{N}}}()
 
 timing = Vector()
 first = true
-Profile.clear()
-for _ in 1:2
+# Profile.clear()
+for _ in 1:1
     # db = OrderedDict{Vector{N},Vector{Vector{N}}}()
     # for (key,rs) in collect(vertical_pairs)
     #     S = length(rs)
@@ -97,12 +102,12 @@ for _ in 1:2
             unique = unique,
             similar = similar,
             overlapping = overlapping,
-            gap = gap,
+            gap_min = gap_min,
+            gap_max = gap_max,
             # set = :maximal
         )
     else
-        # (_, t, bytes, gctime, memallocs) = @timed 
-        @profile Pattern.grow_depth_first!(
+        (_, t, bytes, gctime, memallocs) = @timed Pattern.grow_depth_first!(
             db,
             extend,
             sequence,
@@ -113,11 +118,12 @@ for _ in 1:2
             unique = unique,
             similar = similar,
             overlapping = overlapping,
-            gap = gap,
+            gap_min = gap_min,
+            gap_max = gap_max,
             # set = :maximal
         )
 
-        # push!(timing, (t,bytes,gctime,memallocs))
+        push!(timing, (t,bytes,gctime,memallocs))
     end
 end
 
@@ -142,6 +148,6 @@ reduce((p,l)->p+length(l), 0, flatmap(identity, collect(values(db))))
 filter(k->length(k)>3,collect(keys(db)))
 sort(collect(keys(db)), rev=true)
 
-reverse.(collect(keys(db)))
+# reverse.(collect(keys(db)))
 
 db
