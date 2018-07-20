@@ -27,3 +27,47 @@ DataStructures.OrderedDict{Array{Int64,1},Array{Array{Int64,1},1}} with 6 entrie
   [5, 2]       => Array{Int64,1}[[7, 9], [13, 15]]
   
 
+
+# Experiment 2
+
+rounds 30
+
+data = readcsv("data/kate/51750S_6154V_148N_3K_15E_1234seed_embedded_KATE_clustered_kmeans_51750P_300k.csv")
+
+min_sup     = 8000
+unique      = true
+similar     = true     # for big datasets with small k of Clusters only...
+overlapping = false
+gap         = 0
+
+# with pointers
+Main> avg_time  = reduce((p,t)-> p+t[1], 0.0, timing) / length(timing)
+1.0250946281034483
+
+Main> avg_bytes = reduce((p,t)-> p+t[2], 0.0, timing) / length(timing)
+2.903246208e9
+
+Main> avg_gctime = reduce((p,t)-> p+t[3], 0.0, timing) / length(timing)
+0.27565382837931035
+
+# without pointers
+
+Main> avg_time  = reduce((p,t)-> p+t[1], 0.0, timing) / length(timing)
+0.3422850287241379
+
+Main> avg_bytes = reduce((p,t)-> p+t[2], 0.0, timing) / length(timing)
+9.078768e6
+
+Main> avg_gctime = reduce((p,t)-> p+t[3], 0.0, timing) / length(timing)
+0.004732510724137932
+
+
+# with pointers, but less allocations
+Main> avg_time  = reduce((p,t)-> p+t[1], 0.0, timing) / length(timing)
+0.4969568460000001
+
+Main> avg_bytes = reduce((p,t)-> p+t[2], 0.0, timing) / length(timing)
+1.32896592e8
+
+Main> avg_gctime = reduce((p,t)-> p+t[3], 0.0, timing) / length(timing)
+0.03222219213793104
