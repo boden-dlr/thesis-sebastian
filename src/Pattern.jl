@@ -84,20 +84,25 @@ function grow_depth_first!{N<:Number}(
     vertical::Dict{N,Vector{N}},
     alphabet::Vector{N}; # TODO: CMAP?
     min_sup     = 1,
-    unique      = true,
+    unique      = false,
     similar     = true,
-    overlapping = false,
-    gap         = 0, # -1 endless
+    overlapping = true,
+    gap         = -1, # -1 endless
     set         = :closed, # 'maximal' 'all'
     set_keys    = Set{Int64}[], # TODO: replace with sorted arrays
     # positions   = Dict{Int64,Int64}(), # TODO: replace with an array (assignments)
-    depth       = 0) 
+    pointers::Union{Void,Array{Int64}} = nothing,
+    depth       = 0)
     # TODO: periodicity: min_periodicity:max_periodicity
 
     # A = length(alphabet)
     # P = length(patterns)
 
     # shared_db = SharedVector{Tuple{Vector{N},Tuple{Int64,Vector{Tuple{Int64,Int64}},Vector{Vector{N}}}}}(P*A)
+
+    if pointers == nothing
+        pointers = fill(1, maximum(alphabet))
+    end
 
     for pattern in extend # patterns
         support = length(db[pattern])
@@ -157,7 +162,8 @@ function grow_depth_first!{N<:Number}(
                 # else
                 #     positions[s_ext] = start+1
                 # end
-                for candidate in vertical[s_ext]#[from:end]
+                # @show s_ext, length(vertical[s_ext]), pointers[s_ext]
+                for (c_pos,candidate) in enumerate(vertical[s_ext][pointers[s_ext]:end])
                     # if s_ext == 5 @show s_extension, candidate, start, stop, gap end
                     # @show depth, support, n, s_extension, pattern, s_ext, db[pattern], start, stop, gap, candidate, foundat
                     # if s_ext in [3,4,5] @show "1.2", n, s_extension, candidate, start, stop, gap end
@@ -166,6 +172,11 @@ function grow_depth_first!{N<:Number}(
                     end
                     
                     if candidate >= start # && candidate <= stop #implicit
+                        pointers[s_ext] = c_pos
+                        # if c < length(vertical[s_ext])
+                        #     
+                        # end
+
                         # add = false
                         # # if s_ext in [3,4,5] @show "2", s_extension, candidate, start, stop, gap end
                         # if gap == -1
@@ -221,6 +232,7 @@ function grow_depth_first!{N<:Number}(
                     set = set,
                     set_keys = set_keys,
                     # positions = positions,
+                    pointers = pointers, # current vertical posistions
                     depth = depth + 1)
             else
                 delete!(db, s_extension)

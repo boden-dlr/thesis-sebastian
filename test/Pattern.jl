@@ -26,17 +26,18 @@ sequence = data
 
 # ----------------------------------------------------------------------
 # grow_depth_first!
-# 
+#
 
-min_sup     = 1 #round(Int64,50000/2^15)
-unique      = true
-similar     = false
-overlapping = false
-gap         = 0
+# min_sup = round(Int64,50000/2^15)
+min_sup     = 2
+unique      = false
+similar     = true
+overlapping = true
+gap         = 1
 N = Int64
 
-data = readcsv("data/kate/51750S_6154V_148N_3K_15E_1234seed_embedded_KATE_clustered_kmeans_51750P_300k.csv")
-sequence = map(n->convert(Int64,n), data[:,1])
+# data = readcsv("data/kate/51750S_6154V_148N_3K_15E_1234seed_embedded_KATE_clustered_kmeans_51750P_300k.csv")
+# sequence = map(n->convert(Int64,n), data[:,1])
 # sequence = reverse(sequence)
 # consequents = [42]
 
@@ -120,7 +121,7 @@ for _ in 1:2
     end
 end
 
-ProfileView.view()
+# ProfileView.view()
 
 return db, timing
 end
@@ -144,5 +145,3 @@ sort(collect(keys(db)), rev=true)
 reverse.(collect(keys(db)))
 
 db
-
-
