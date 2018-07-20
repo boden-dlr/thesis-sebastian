@@ -423,7 +423,7 @@ end
 
 
 # split_and_keep_splitter("", r"[\w\p{L}]+")
-split_and_keep_splitter("2014-12-02 08:27:33,090 DEBUG - de.rcenvironment.components.cpacs.vampzeroinitializer.common - BundleEvent [unknown:512] - de.rcenvironment.components.cpacs.vampzeroinitializer.common", r"[\w\p{L}\.]+")
+# split_and_keep_splitter("2014-12-02 08:27:33,090 DEBUG - de.rcenvironment.components.cpacs.vampzeroinitializer.common - BundleEvent [unknown:512] - de.rcenvironment.components.cpacs.vampzeroinitializer.common", r"[\w\p{L}\.]+")
 
 
 end # module NLP
