@@ -29,6 +29,10 @@ syslog
 *tar*
 *.gz
 *.7z
+*.gz2
+*.bin
+*.jld
+*.bson
 
 *.png
 *.svg
