@@ -72,11 +72,11 @@ srand(seed)
 L = 2
 
 m = Chain(
-    MultiChar(seqlen, 128, A),
+    # MultiChar(seqlen, 128, A),
     # MultiChar(seqlen, 128, A, σ=sigmoid),
     # MultiChar(seqlen, 128, A, σ=cos),
     
-    # LSTM(128, 64),
+    LSTM(seqlen, 128),
     # LSTM(64, L),
     # LSTM(L, 64),
     # LSTM(64, 128),
