@@ -28,8 +28,10 @@ syslog
 *.zip
 *tar*
 *.gz
-*.7z
 *.gz2
+*.bz
+*.bz2
+*.7z
 *.bin
 *.jld
 *.bson
