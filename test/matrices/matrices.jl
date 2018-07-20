@@ -40,3 +40,6 @@ A' * (A * B)
 A' * A
 
 A * A'
+
+# NOTE: transpose vs. .' operator
+# one allocates and the other only creates a view on the old data... but which is which?
