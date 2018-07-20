@@ -10,20 +10,26 @@ set = [
 ]
 regexp = RegExp.infer(set)
 for line in set
-    line_joined = join(line, " ")
+    line_joined = join(line, "")
     @show match(regexp, line_joined)
 end
 
 set = [
-    ["to", "be", "or", "not", "to", "be"],
+    ["to", "be", "or", "not", "to", "be"], # TOOD: fix prefix
     ["to", "be", "or", "not", "to", "be", "this", "is", "the", "question"],
     ["to", "be", "or", "not", "to", "be,", "this", "is", "the", "question"],
 ]
 regexp = RegExp.infer(set)
 for line in set
-    line_joined = join(line, " ")
+    line_joined = join(line, "")
     @show match(regexp, line_joined)
 end
+
+set = [
+    String["%RCEDATETIME%", " ", "DEBUG", " ", "-", " ", "de", ".", "rcenvironment", ".", "core", ".", "communication", ".", "transport", ".", "jms", ".", "activemq", ".", "internal", ".", "ActiveMQConnectionFilterPlugin", " ", "-", " ", "Accepting", " ", "TCP"," ", "JMS", " ", "connection", " ", "from", " ", "%IPv4%"],
+    String["%RCEDATETIME%", " ", "DEBUG", " ", "-", " ", "de", ".", "rcenvironment", ".", "core", ".", "communication", ".", "transport", ".", "jms", ".", "common", ".", "InitialInboxConsumer", " ", "-", " ", "Remote", "-", "initiated", " ", "connection", " ", "established", ",", " ", "sending", " ", "handshake", " ", "response", " ", "to", " ", "%PATH%"],
+]
+regexp = RegExp.infer(set)
 
 # ----------------------------------------------------------------------
 
@@ -54,7 +60,9 @@ for group in collect(keys(grouped))
     members = grouped[group]
     indices = map(m->m[1],members)
     samples = map(m->m[2],members)
-    regexp = RegExp.infer(samples)
+    regexp = RegExp.infer(samples,
+        insert_placeholder = true,
+        replacements = Dict("timestamp" => "\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}"))    
 
     matches = 0
     limit = 7
@@ -77,9 +85,9 @@ for group in collect(keys(grouped))
         # for (i, member) in members[1:min(7,end)]
         #     println(i, "\t", join(filter(w->length(w)>0,member), " "))
         # end
-        for (i,line) in nonmatched
-            println(i, " ", line)
-        end
+        # for (i,line) in nonmatched
+        #     println(i, " ", line)
+        # end
         @show length(members), matches
         println(regexp)
     end
