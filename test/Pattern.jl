@@ -7,6 +7,7 @@ using DataStructures: OrderedDict
 using BenchmarkTools, Compat
 using ProfileView
 
+#            A B C E D G E A B C F E E A B D 
 data = Int64[1,2,3,5,4,8,5,1,2,3,7,5,5,1,2,4]
 #            0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1
 #            1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6
@@ -29,14 +30,15 @@ sequence = data
 # 
 
 min_sup     = 1 #round(Int64,50000/2^15)
-unique      = true
-similar     = false
+unique      = false
+similar     = true
 overlapping = false
-gap         = 0
+gap         = -1
+set         = :closed
 N = Int64
 
-data = readcsv("data/kate/51750S_6154V_148N_3K_15E_1234seed_embedded_KATE_clustered_kmeans_51750P_300k.csv")
-sequence = map(n->convert(Int64,n), data[:,1])
+# data = readcsv("data/kate/51750S_6154V_148N_3K_15E_1234seed_embedded_KATE_clustered_kmeans_51750P_300k.csv")
+# sequence = map(n->convert(Int64,n), data[:,1])
 # sequence = reverse(sequence)
 # consequents = [42]
 
@@ -48,15 +50,16 @@ function test_grow_depth_first(sequence)
 
 vertical = Index.invert(sequence)
 alphabet = sort(collect(keys(vertical)))
+alphabet = [5]
 # alphabet = [11,72,119,276]
 # vertical_pairs = Index.pairs(sequence, gap=gap)
 # pairs = collect(keys(vertical_pairs))
 db = OrderedDict{Vector{N},Vector{Vector{N}}}()
 
 timing = Vector()
-first = true
-Profile.clear()
-for _ in 1:2
+first = false
+# Profile.clear()
+for _ in 1:1
     # db = OrderedDict{Vector{N},Vector{Vector{N}}}()
     # for (key,rs) in collect(vertical_pairs)
     #     S = length(rs)
@@ -79,6 +82,7 @@ for _ in 1:2
         db[[key]] = collect(map(v->[v], vals))
     end
     extend = reverse(collect(map(k->[k],keys(vertical))))
+    # extend = [[1]]
     # extend = map(c->[c], consequents)
     # @show extend
 
@@ -97,7 +101,7 @@ for _ in 1:2
             similar = similar,
             overlapping = overlapping,
             gap = gap,
-            # set = :maximal
+            set = set,
         )
     else
         # (_, t, bytes, gctime, memallocs) = @timed 
@@ -113,14 +117,14 @@ for _ in 1:2
             similar = similar,
             overlapping = overlapping,
             gap = gap,
-            # set = :maximal
+            set = set,
         )
 
         # push!(timing, (t,bytes,gctime,memallocs))
     end
 end
 
-ProfileView.view()
+# ProfileView.view()
 
 return db, timing
 end

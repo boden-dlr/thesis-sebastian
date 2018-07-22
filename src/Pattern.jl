@@ -107,15 +107,15 @@ function grow_depth_first!{N<:Number}(
             continue
         end
         
-        # if !similar
-        #     pattern_as_set = Set(pattern)
-        #     if any(s-> intersect(s, pattern_as_set) == pattern_as_set, set_keys)
-        #         delete!(db, pattern)
-        #         continue
-        #     else
-        #         push!(set_keys, pattern_as_set)
-        #     end
-        # end
+        if !similar
+            pattern_as_set = Set(pattern)
+            if any(s-> intersect(s, pattern_as_set) == pattern_as_set, set_keys)
+                delete!(db, pattern)
+                continue
+            else
+                push!(set_keys, pattern_as_set)
+            end
+        end
 
         foundat_all = Set{Int64}()
         for s_ext in alphabet
@@ -133,8 +133,10 @@ function grow_depth_first!{N<:Number}(
                 start = db[pattern][i][end] + 1
                 # stop = start+1
                 stop = len
+                # stop = db[pattern][end][end]
                 if gap >= 0
                     stop = min(len, start + gap)
+                    # stop = min(len, stop + gap)
                 end
                 # if n != support
                 #     # stop = db[pattern][n+1][1] - 1
@@ -186,7 +188,9 @@ function grow_depth_first!{N<:Number}(
                                 push!(db[s_extension], occurence)
                                 push!(foundat, i)
                             else
-                                if db[s_extension][end][end] < candidate # do not touch this
+                                # @show candidate, start, stop, db[s_extension][end]
+                                # if db[s_extension][end][end] < candidate # do not touch this
+                                if db[s_extension][end][end] < start # do not touch this
                                     push!(db[s_extension], occurence)
                                     push!(foundat, i)
                                 end
