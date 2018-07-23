@@ -30,12 +30,12 @@ sequence = data
 # 
 
 min_sup     = 2 #round(Int64,50000/2^15)
-unique      = true
-unique_n    = 2
+unique      = false
+unique_n    = 1
 similar     = true
 overlapping = false
-gap         = -1
-set         = :closed
+gap         = 2
+set         = :all
 N = Int64
 
 # data = readcsv("data/kate/51750S_6154V_148N_3K_15E_1234seed_embedded_KATE_clustered_kmeans_51750P_300k.csv")
@@ -58,7 +58,7 @@ alphabet = sort(collect(keys(vertical)))
 db = OrderedDict{Vector{N},Vector{Vector{N}}}()
 
 timing = Vector()
-first = false
+first = true
 # Profile.clear()
 for _ in 1:1
     # db = OrderedDict{Vector{N},Vector{Vector{N}}}()
@@ -107,8 +107,8 @@ for _ in 1:1
             set = set,
         )
     else
-        # (_, t, bytes, gctime, memallocs) = @timed 
-        @profile Pattern.grow_depth_first!(
+        # @profile 
+        (_, t, bytes, gctime, memallocs) = @timed Pattern.grow_depth_first!(
             db,
             extend,
             sequence,
@@ -124,7 +124,7 @@ for _ in 1:1
             set = set,
         )
 
-        # push!(timing, (t,bytes,gctime,memallocs))
+        push!(timing, (t,bytes,gctime,memallocs))
     end
 end
 
@@ -140,9 +140,6 @@ avg_bytes = reduce((p,t)-> p+t[2], 0.0, timing) / length(timing)
 avg_gctime = reduce((p,t)-> p+t[3], 0.0, timing) / length(timing)
 # avg_memallocs = reduce((p,t)-> p+t[4], Base.GC_Diff(0,0,0,0,0,0,0,0,0), timing) / length(timing)
 
-# for (i,(k,v)) in enumerate(collect(db))
-#     println(string(i, "\t", k, "\t\t", v))
-# end
 length(keys(db))
 reduce((p,l)->p+length(l), 0, flatmap(identity, collect(values(db))))
 
@@ -153,5 +150,9 @@ filter(v -> v!=nothing,
 # sort(collect(keys(db)), rev=true)
 
 reverse.(collect(keys(db)))
+
+# for (i,(k,v)) in enumerate(collect(db))
+#     println(string(i, "\t", k, "\t\t", v))
+# end
 
 db

@@ -208,7 +208,7 @@ function grow_depth_first!{N<:Number}(
                             else
                                 # @show candidate, start, stop, db[s_extension][end]
                                 # if db[s_extension][end][end] < candidate # do not touch this
-                                if db[s_extension][end][end] < start # do not touch this
+                                if db[s_extension][end][end] <= db[pattern][i][1] # do not touch this
                                     push!(db[s_extension], occurence)
                                     push!(foundat, i)
                                 end
