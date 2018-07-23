@@ -2,7 +2,7 @@ module Pattern
 
 using LogClustering.Index
 using LogClustering.Index: key
-using DataStructures: OrderedDict
+using DataStructures: OrderedDict, Trie
 # using Compat
 
 #TODO Tuple/Array => (support, range, occs)
@@ -84,12 +84,14 @@ function grow_depth_first!{N<:Number}(
     vertical::Dict{N,Vector{N}},
     alphabet::Vector{N}; # TODO: CMAP?
     min_sup     = 1,
-    unique      = true,
+    unique      = false,
+    unique_n    = 1,
     similar     = true,
     overlapping = false,
-    gap         = 0, # -1 endless
-    set         = :closed, # 'maximal' 'all'
-    set_keys    = Set{Int64}[], # TODO: replace with sorted arrays
+    gap         = -1, # -1 endless
+    set         = :all, # [:all, :closed, :maximal] closed vs. maximal?!
+    # set_keys    = Set{Int64}[], # TODO: replace with sorted arrays
+    sorted_keys = Vector{Int64}[],
     # positions   = Dict{Int64,Int64}(), # TODO: replace with an array (assignments)
     depth       = 0) 
     # TODO: periodicity: min_periodicity:max_periodicity
@@ -108,19 +110,35 @@ function grow_depth_first!{N<:Number}(
         end
         
         if !similar
-            pattern_as_set = Set(pattern)
-            if any(s-> intersect(s, pattern_as_set) == pattern_as_set, set_keys)
+            # pattern_as_set = Set(pattern)
+            # if any(s-> intersect(s, pattern_as_set) == pattern_as_set, set_keys)
+            #     delete!(db, pattern)
+            #     continue
+            # else
+            #     push!(set_keys, pattern_as_set)
+            # end
+            p = sort(pattern)
+            if any(k-> k == p, sorted_keys)
                 delete!(db, pattern)
                 continue
             else
-                push!(set_keys, pattern_as_set)
+                push!(sorted_keys, p)
             end
         end
 
         foundat_all = Set{Int64}()
         for s_ext in alphabet
-            if unique && s_ext in pattern
-                continue
+            # if unique && s_ext in pattern
+            if unique
+                if unique_n <= 1
+                    if s_ext in pattern
+                        continue
+                    end
+                else
+                    if count(e->e == s_ext, pattern) >= unique_n
+                        continue
+                    end
+                end
             end
             foundat = Vector{Int64}()
             s_extension = vcat(pattern, s_ext)
@@ -219,11 +237,13 @@ function grow_depth_first!{N<:Number}(
                     sequence, len, vertical, alphabet;
                     min_sup = min_sup,
                     unique = unique,
+                    unique_n = unique_n,
                     similar = similar,
                     overlapping = overlapping,
                     gap = gap,
                     set = set,
-                    set_keys = set_keys,
+                    # set_keys = set_keys,
+                    sorted_keys = sorted_keys,
                     # positions = positions,
                     depth = depth + 1)
             else

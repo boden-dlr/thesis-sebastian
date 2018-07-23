@@ -3,7 +3,7 @@ using LogClustering.Pattern
 using LogClustering.Index
 using LogClustering.Sort: isless
 using LogClustering.Sequence: flatmap
-using DataStructures: OrderedDict
+using DataStructures: OrderedDict, Trie
 using BenchmarkTools, Compat
 using ProfileView
 
@@ -29,8 +29,9 @@ sequence = data
 # grow_depth_first!
 # 
 
-min_sup     = 1 #round(Int64,50000/2^15)
-unique      = false
+min_sup     = 2 #round(Int64,50000/2^15)
+unique      = true
+unique_n    = 2
 similar     = true
 overlapping = false
 gap         = -1
@@ -40,7 +41,7 @@ N = Int64
 # data = readcsv("data/kate/51750S_6154V_148N_3K_15E_1234seed_embedded_KATE_clustered_kmeans_51750P_300k.csv")
 # sequence = map(n->convert(Int64,n), data[:,1])
 # sequence = reverse(sequence)
-# consequents = [42]
+# consequents = [119]
 
 # TODO:NOTE: JULIA BUG in OrderedDict!
 # vertical = OrderedDict(sort(Index.invert(sequence)))
@@ -50,7 +51,7 @@ function test_grow_depth_first(sequence)
 
 vertical = Index.invert(sequence)
 alphabet = sort(collect(keys(vertical)))
-alphabet = [5]
+# alphabet = [5]
 # alphabet = [11,72,119,276]
 # vertical_pairs = Index.pairs(sequence, gap=gap)
 # pairs = collect(keys(vertical_pairs))
@@ -76,15 +77,16 @@ for _ in 1:1
     db = OrderedDict{Vector{N},Vector{Vector{N}}}()
     for (key,vals) in collect(vertical)
         # @show key, vals, typeof(vals)
+        db[[key]] = collect(map(v->[v], vals))
         # if key in consequents
         #     db[[key]] = collect(map(v->[v], vals))
         # end
-        db[[key]] = collect(map(v->[v], vals))
     end
-    extend = reverse(collect(map(k->[k],keys(vertical))))
+    # extend = reverse(collect(map(k->[k],keys(vertical))))
+    extend = reverse(collect(keys(db)))
     # extend = [[1]]
     # extend = map(c->[c], consequents)
-    # @show extend
+    @show extend
 
     
     if first
@@ -98,6 +100,7 @@ for _ in 1:1
             alphabet;
             min_sup = min_sup,
             unique = unique,
+            unique_n = unique_n,
             similar = similar,
             overlapping = overlapping,
             gap = gap,
@@ -114,6 +117,7 @@ for _ in 1:1
             alphabet;
             min_sup = min_sup,
             unique = unique,
+            unique_n = unique_n,
             similar = similar,
             overlapping = overlapping,
             gap = gap,
@@ -142,11 +146,12 @@ avg_gctime = reduce((p,t)-> p+t[3], 0.0, timing) / length(timing)
 length(keys(db))
 reduce((p,l)->p+length(l), 0, flatmap(identity, collect(values(db))))
 
-filter(k->length(k)>3,collect(keys(db)))
-sort(collect(keys(db)), rev=true)
+filter(v -> v!=nothing,
+    map(k -> length(db[k]) >= min_sup ? (length(db[k]),k) : nothing, 
+        filter(k -> length(k) >= 2, collect(keys(db)))))
+
+# sort(collect(keys(db)), rev=true)
 
 reverse.(collect(keys(db)))
 
 db
-
-
