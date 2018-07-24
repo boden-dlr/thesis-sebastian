@@ -107,7 +107,8 @@ function avg_utility(utilities, total_utility, len, episode)
     for e in episode
         u_sum += utilities[e]
     end
-    (u_sum / length(episode) * total_utility / len) / total_utility
+    # (u_sum / length(episode) * total_utility / len) / total_utility
+    min(1.0, (u_sum / length(episode) / len))
 end
 
 
@@ -126,7 +127,7 @@ function grow_depth_first!{N<:Number}(
     unique_n    = 1,
     similar     = true,
     overlapping = false,
-    gap         = -1, # -1 endless
+    gap         = 0, # -1 endless
     set         = :all, # [:all, :closed, :maximal] closed vs. maximal?!
     # set_keys    = Set{Int64}[], # TODO: replace with sorted arrays? What performs better?
     sorted_keys = Vector{Int64}[],
@@ -143,8 +144,10 @@ function grow_depth_first!{N<:Number}(
             continue
         end
 
-        println(avg_utility(utilities, total_utility, len, pattern), "\t", pattern)
-        if utilities != nothing && avg_utility(utilities, total_utility, len, pattern) < min_utility
+        # println(avg_utility(utilities, total_utility, len, pattern), "\t", pattern)
+        # if utilities != nothing && avg_utility(utilities, total_utility, len, pattern) < min_utility
+        # println(local_utility(utilities, pattern), "\t", pattern)
+        if utilities != nothing && local_utility(utilities, pattern) < min_utility
             delete!(db, pattern)
             continue
         end

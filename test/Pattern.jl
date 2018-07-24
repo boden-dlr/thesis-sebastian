@@ -5,7 +5,7 @@ using LogClustering.Sort: isless
 using LogClustering.Sequence: flatmap
 using DataStructures: OrderedDict, Trie
 using BenchmarkTools, Compat
-using ProfileView
+# using ProfileView
 
 #            A B C E D G E A B C F E E A B D 
 data = Int64[1,2,3,5,4,8,5,1,2,3,7,5,5,1,2,4]
@@ -29,27 +29,28 @@ sequence = data
 # grow_depth_first!
 # 
 
-min_utility = 0.16 # 000337
-min_sup     = 2 #round(Int64,50000/2^15)
+min_utility = 0.999 # 000337
+min_sup     = 340 #round(Int64,50000/2^15)
 unique      = true
-unique_n    = 1
+unique_n    = 2
 similar     = false
 overlapping = false
-gap         = 0
+gap         = 2
 set         = :all
 N = Int64
 
-# data = readcsv("data/kate/51750S_6154V_148N_3K_15E_1234seed_embedded_KATE_clustered_kmeans_51750P_300k.csv")
-# sequence = map(n->convert(Int64,n), data[:,1])
+# #= data = readcsv("data/kate/51750S_6154V_148N_3K_15E_1234seed_embedded_KATE_clustered_kmeans_51750P_300k.csv")
+# sequence = map(n->convert(Int64,n), data[:,1]) =#
 # sequence = reverse(sequence)
 # sequence = reverse(sequence)
 # consequents = [119]
 
 # TODO:NOTE: JULIA BUG in OrderedDict!
-# vertical = OrderedDict(sort(Index.invert(sequence)))
+vertical = OrderedDict(sort(Index.invert(sequence)))
 
 
 function test_grow_depth_first(sequence)
+
 
 vertical = Index.invert(sequence)
 # @show vertical
@@ -59,9 +60,9 @@ alphabet = map(kv->kv[1], sort(collect(vertical), by = kv -> length(kv[2]), rev=
 
 utilities = nothing
 # utilities = Dict{Int64,Int64}(map(k -> k => k, alphabet))
-# max_occ = maximum(map(length,values(vertical)))
-# utilities = Dict{Int64,Int64}(map(k -> k => 1 + max_occ - length(vertical[k]), alphabet))
-utilities = Dict{Int64,Int64}(map(k -> k => length(vertical[k]), alphabet))
+max_occ = maximum(map(length,values(vertical)))
+utilities = Dict{Int64,Int64}(map(k -> k => 1 + max_occ - length(vertical[k]), alphabet))
+# utilities = Dict{Int64,Int64}(map(k -> k => length(vertical[k]), alphabet))
 total_utility = sum(e->utilities[e], sequence)
 # alphabet = [5]
 # alphabet = [11,72,119,276]
@@ -161,13 +162,14 @@ avg_gctime = reduce((p,t)-> p+t[3], 0.0, timing) / length(timing)
 length(keys(db))
 reduce((p,l)->p+length(l), 0, flatmap(identity, collect(values(db))))
 
-filter(v -> v!=nothing,
-    map(k -> length(db[k]) >= min_sup ? (length(db[k]),length(k),k,db[k]) : nothing, 
+sort(filter(v -> v!=nothing,
+    map(k -> length(db[k]) >= min_sup ? (length(db[k]),length(k),k) : nothing, # db[k]
         filter(k -> length(k) >= 3, collect(keys(db)))))
+    , by = x->x[1])
 
 # sort(collect(keys(db)), rev=true)
 
-reverse.(collect(keys(db)))
+# reverse.(collect(keys(db)))
 
 # for (i,(k,v)) in enumerate(collect(db))
 #     println(string(i, "\t", k, "\t\t", v))
