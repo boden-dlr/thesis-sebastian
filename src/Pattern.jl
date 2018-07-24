@@ -306,4 +306,29 @@ function mine_recurring{N<:Number}(sequence::Array{N,1}, min_sup::Int64 = 1)
     # DataStructures.OrderedDict(sort(result), by=kv->kv[1][1])
 end
 
+
+function generate_lookuptable(vertical::Dict{Int64,Vector{Int64}}, n::Int64)
+
+    n = 16
+    m = length(vertical)
+
+    A = sort(collect(keys(vertical)))
+
+    L = fill(-1,m,n)
+    for i in 1:m
+        occs = vertical[A[i]]
+        l = 1
+        for k in 1:length(occs)
+            for j in l:n
+                # @show i,A[i],j,k,occs[k],occs
+                if j <= occs[k]
+                    L[i,j] = k
+                    l += 1
+                end
+            end
+        end
+    end
+end
+
+
 end # module Pattern
