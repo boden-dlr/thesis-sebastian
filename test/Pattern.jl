@@ -5,7 +5,7 @@ using LogClustering.Sort: isless
 using LogClustering.Sequence: flatmap
 using DataStructures: OrderedDict, Trie
 using BenchmarkTools, Compat
-# using ProfileView
+using ProfileView
 
 #            A B C E D G E A B C F E E A B D 
 data = Int64[1,2,3,5,4,8,5,1,2,3,7,5,5,1,2,4]
@@ -35,45 +35,48 @@ unique      = true
 unique_n    = 2
 similar     = false
 overlapping = false
-gap         = 2
+gap         = 0
 set         = :all
 N = Int64
 
-# #= data = readcsv("data/kate/51750S_6154V_148N_3K_15E_1234seed_embedded_KATE_clustered_kmeans_51750P_300k.csv")
-# sequence = map(n->convert(Int64,n), data[:,1]) =#
+data = readcsv("data/kate/51750S_6154V_148N_3K_15E_1234seed_embedded_KATE_clustered_kmeans_51750P_300k.csv")
+sequence = map(n->convert(Int64,n), data[:,1])
 # sequence = reverse(sequence)
 # sequence = reverse(sequence)
 # consequents = [119]
 
 # TODO:NOTE: JULIA BUG in OrderedDict!
-vertical = OrderedDict(sort(Index.invert(sequence)))
-
-
-function test_grow_depth_first(sequence)
+# vertical = OrderedDict(sort(Index.invert(sequence)))
 
 
 vertical = Index.invert(sequence)
-# @show vertical
-# alphabet = sort(collect(vertical), by = (k,v) -> v )
 alphabet = map(kv->kv[1], sort(collect(vertical), by = kv -> length(kv[2]), rev=true))
-# @show alphabet
-
 utilities = nothing
+total_utility = 1
 # utilities = Dict{Int64,Int64}(map(k -> k => k, alphabet))
-max_occ = maximum(map(length,values(vertical)))
-utilities = Dict{Int64,Int64}(map(k -> k => 1 + max_occ - length(vertical[k]), alphabet))
-# utilities = Dict{Int64,Int64}(map(k -> k => length(vertical[k]), alphabet))
+# max_occ = maximum(map(length,values(vertical)))
+# utilities = Dict{Int64,Int64}(map(k -> k => 1 + max_occ - length(vertical[k]), alphabet))
+utilities = Dict{Int64,Int64}(map(k -> k => length(vertical[k]), alphabet))
 total_utility = sum(e->utilities[e], sequence)
+
 # alphabet = [5]
 # alphabet = [11,72,119,276]
 # vertical_pairs = Index.pairs(sequence, gap=gap)
 # pairs = collect(keys(vertical_pairs))
+
+vertical = filter((k,v)->length(v) >= min_sup, vertical)
+alphabet = map(kv->kv[1], sort(collect(vertical), by = kv -> length(kv[2]), rev=true))
+@show alphabet
+
+
+function test_grow_depth_first(vertical, alphabet)
+
 db = OrderedDict{Vector{N},Vector{Vector{N}}}()
 
 timing = Vector()
 first = true
 # Profile.clear()
-for _ in 1:1
+for _ in 1:5
     # db = OrderedDict{Vector{N},Vector{Vector{N}}}()
     # for (key,rs) in collect(vertical_pairs)
     #     S = length(rs)
@@ -96,7 +99,8 @@ for _ in 1:1
         # end
     end
     # extend = reverse(collect(map(k->[k],keys(vertical))))
-    extend = reverse(collect(keys(db)))
+    # extend = reverse(collect(keys(db)))
+    extend = sort(collect(keys(db)))
     # extend = [[1]]
     # extend = map(c->[c], consequents)
     @show extend
@@ -152,7 +156,7 @@ end
 return db, timing
 end
 
-db, timing = test_grow_depth_first(sequence)
+db, timing = test_grow_depth_first(vertical, alphabet)
 
 avg_time  = reduce((p,t)-> p+t[1], 0.0, timing) / length(timing)
 avg_bytes = reduce((p,t)-> p+t[2], 0.0, timing) / length(timing)
@@ -176,3 +180,7 @@ sort(filter(v -> v!=nothing,
 # end
 
 db
+
+# while true
+#     sleep(5)
+# end
