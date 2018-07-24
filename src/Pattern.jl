@@ -309,12 +309,11 @@ end
 
 function generate_lookuptable(vertical::Dict{Int64,Vector{Int64}}, n::Int64)
 
-    n = 16
     m = length(vertical)
-
     A = sort(collect(keys(vertical)))
-
+    V = Dict(map(ie -> ie[2] => ie[1], enumerate(A)))
     L = fill(-1,m,n)
+    
     for i in 1:m
         occs = vertical[A[i]]
         l = 1
@@ -329,7 +328,7 @@ function generate_lookuptable(vertical::Dict{Int64,Vector{Int64}}, n::Int64)
         end
     end
 
-    L,A
+    L,A,V
 end
 
 
