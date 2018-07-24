@@ -307,7 +307,7 @@ function mine_recurring{N<:Number}(sequence::Array{N,1}, min_sup::Int64 = 1)
 end
 
 
-function generate_lookuptable(vertical::Dict{Int64,Vector{Int64}}, n::Int64)
+function generate_lookuptable(vertical::Associative{Int64,Vector{Int64}}, n::Int64)
 
     m = length(vertical)
     A = sort(collect(keys(vertical)))
