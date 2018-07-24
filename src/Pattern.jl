@@ -200,7 +200,7 @@ function grow_depth_first!{N<:Number}(
                 # else
                 #     positions[s_ext] = start+1
                 # end
-                for candidate in vertical[s_ext]#[from:end]
+                for candidate in @views vertical[s_ext]#[from:end]
                     # @show depth, support, n, s_extension, pattern, s_ext, db[pattern], start, stop, gap, candidate, foundat
                     if candidate > stop
                         break

@@ -30,12 +30,12 @@ sequence = data
 # 
 
 min_utility = 0.999 # 000337
-min_sup     = 340 #round(Int64,50000/2^15)
+min_sup     = 1 #round(Int64,50000/2^15)
 unique      = true
 unique_n    = 2
 similar     = false
 overlapping = false
-gap         = 0
+gap         = 1
 set         = :all
 N = Int64
 
@@ -76,7 +76,7 @@ db = OrderedDict{Vector{N},Vector{Vector{N}}}()
 timing = Vector()
 first = true
 # Profile.clear()
-for _ in 1:5
+for _ in 1:30
     # db = OrderedDict{Vector{N},Vector{Vector{N}}}()
     # for (key,rs) in collect(vertical_pairs)
     #     S = length(rs)
