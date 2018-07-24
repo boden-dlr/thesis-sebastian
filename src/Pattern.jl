@@ -328,6 +328,8 @@ function generate_lookuptable(vertical::Dict{Int64,Vector{Int64}}, n::Int64)
             end
         end
     end
+
+    L,A
 end
 
 
