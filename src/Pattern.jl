@@ -75,6 +75,41 @@ end
 #     end
 # end
 
+function random_utility(e)
+    rand()
+end
+
+
+function local_utility(utilities, episode)
+    u_sum = 0
+    local_max = 0
+    for e in episode
+        u = utilities[e]
+        u_sum += u
+        if u > local_max
+            local_max = u
+        end
+    end
+    u_sum / (length(episode) * local_max)
+end
+
+
+function external_utility(utilities, total_utility, episode)
+    u_sum = 0
+    for e in episode
+        u_sum += utilities[e]
+    end
+    u_sum / total_utility
+end
+
+function avg_utility(utilities, total_utility, len, episode)
+    u_sum = 0
+    for e in episode
+        u_sum += utilities[e]
+    end
+    (u_sum / length(episode) * total_utility / len) / total_utility
+end
+
 
 function grow_depth_first!{N<:Number}(
     db::OrderedDict{Vector{N},Vector{Vector{N}}},
@@ -83,6 +118,9 @@ function grow_depth_first!{N<:Number}(
     len::Int64,
     vertical::Dict{N,Vector{N}},
     alphabet::Vector{N}; # TODO: CMAP?
+    utilities::Union{Void,Dict{Int64,Int64}} = nothing,
+    total_utility = len,
+    min_utility = 0.0,
     min_sup     = 1,
     unique      = false,
     unique_n    = 1,
@@ -90,14 +128,10 @@ function grow_depth_first!{N<:Number}(
     overlapping = false,
     gap         = -1, # -1 endless
     set         = :all, # [:all, :closed, :maximal] closed vs. maximal?!
-    # set_keys    = Set{Int64}[], # TODO: replace with sorted arrays
+    # set_keys    = Set{Int64}[], # TODO: replace with sorted arrays? What performs better?
     sorted_keys = Vector{Int64}[],
     # positions   = Dict{Int64,Int64}(), # TODO: replace with an array (assignments)
     depth       = 0) 
-    # TODO: periodicity: min_periodicity:max_periodicity
-
-    # A = length(alphabet)
-    # P = length(patterns)
 
     # shared_db = SharedVector{Tuple{Vector{N},Tuple{Int64,Vector{Tuple{Int64,Int64}},Vector{Vector{N}}}}}(P*A)
 
@@ -105,6 +139,12 @@ function grow_depth_first!{N<:Number}(
         support = length(db[pattern])
         # @show support, pattern
         if support < min_sup
+            delete!(db, pattern)
+            continue
+        end
+
+        println(avg_utility(utilities, total_utility, len, pattern), "\t", pattern)
+        if utilities != nothing && avg_utility(utilities, total_utility, len, pattern) < min_utility
             delete!(db, pattern)
             continue
         end
@@ -128,7 +168,6 @@ function grow_depth_first!{N<:Number}(
 
         foundat_all = Set{Int64}()
         for s_ext in alphabet
-            # if unique && s_ext in pattern
             if unique
                 if unique_n <= 1
                     if s_ext in pattern
@@ -142,35 +181,16 @@ function grow_depth_first!{N<:Number}(
             end
             foundat = Vector{Int64}()
             s_extension = vcat(pattern, s_ext)
-            # if s_ext in [3,4,5] @show "1", s_extension, pattern, db[pattern], support end
 
             # TODO intersect all keys with s_extension
 
             for i in 1:support # TODO: maybe change fors s_ext/support and use start/end to prune extensions by @view of sequence...
-                # if s_ext == 5 @show s_extension, n end
                 start = db[pattern][i][end] + 1
-                # stop = start+1
                 stop = len
-                # stop = db[pattern][end][end]
                 if gap >= 0
                     stop = min(len, start + gap)
-                    # stop = min(len, stop + gap)
                 end
-                # if n != support
-                #     # stop = db[pattern][n+1][1] - 1
-                #     if unique || !overlapping
-                #         stop = db[pattern][end][1] - 1
-                #         # stop = db[pattern][end][1]
-                #     else
-                #         stop = db[pattern][end][1]
-                #         # stop = len  # maybe always until `len`?
-                #     end
-                # end
-                # @show start, stop, s_ext, vertical[s_ext]
-                # from = Compat.findfirst(x -> x >= start, vertical[s_ext])
-                # if from == nothing # for v0.6 and v0.7
-                #     break
-                # end
+
                 # from = 1
                 # if haskey(positions, s_ext)
                 #     from = positions[s_ext]
@@ -178,37 +198,21 @@ function grow_depth_first!{N<:Number}(
                 #     positions[s_ext] = start+1
                 # end
                 for candidate in vertical[s_ext]#[from:end]
-                    # if s_ext == 5 @show s_extension, candidate, start, stop, gap end
                     # @show depth, support, n, s_extension, pattern, s_ext, db[pattern], start, stop, gap, candidate, foundat
-                    # if s_ext in [3,4,5] @show "1.2", n, s_extension, candidate, start, stop, gap end
                     if candidate > stop
                         break
                     end
                     
-                    if candidate >= start # && candidate <= stop #implicit
-                        # add = false
-                        # # if s_ext in [3,4,5] @show "2", s_extension, candidate, start, stop, gap end
-                        # if gap == -1
-                        #     add = true
-                        # # NOTE: this prunes a lot!
-                        # # elseif gap >= 0 && candidate <= start+gap
-                        # elseif gap >= 0 && candidate <= stop
-                        #     # if s_ext in [3,4,5] @show "3", s_extension, candidate, start, stop, gap end
-                        #     add = true
-                        # end
-                        # # println()
-                        # if add
+                    if candidate >= start # && candidate <= stop # (implicitly)
                         occurence = vcat(db[pattern][i], candidate)
-                        # @show pattern, s_ext, candidate, start, stop
-                        # @show s_extension, occurence
+                        # @show s_ext, start, stop, candidate, pattern, s_extension, occurence
                         if haskey(db, s_extension)
                             if overlapping
                                 push!(db[s_extension], occurence)
                                 push!(foundat, i)
                             else
-                                # @show candidate, start, stop, db[s_extension][end]
-                                # if db[s_extension][end][end] < candidate # do not touch this
-                                if db[s_extension][end][end] <= db[pattern][i][1] # do not touch this
+                                # if db[s_extension][end][end] < candidate
+                                if db[s_extension][end][end] <= db[pattern][i][1] # do not touch this as it generates correct `moSet``
                                     push!(db[s_extension], occurence)
                                     push!(foundat, i)
                                 end
@@ -217,16 +221,8 @@ function grow_depth_first!{N<:Number}(
                             db[s_extension] = [occurence]
                             push!(foundat, i)
                         end
-                        # println.(collect(db))
-                        #@show depth, s_extension, pattern, s_ext
-                        #@show occurence, foundat, candidate, start, stop
-                        #println("end: add")
-                        # end
-                        #println("end: if candidate")
                     end
-                    #println("end: for candidate: $candidate")
                 end
-                #println("end: support")
             end
 
             if length(foundat) >= min_sup
@@ -235,6 +231,9 @@ function grow_depth_first!{N<:Number}(
                 grow_depth_first!(
                     db, [s_extension],
                     sequence, len, vertical, alphabet;
+                    utilities = utilities,
+                    total_utility = total_utility,
+                    min_utility = min_utility,
                     min_sup = min_sup,
                     unique = unique,
                     unique_n = unique_n,
@@ -274,6 +273,15 @@ function grow_depth_first!{N<:Number}(
         if support < min_sup
             delete!(db, pattern)
             # continue
+        end
+    end
+
+    # filter 1-event episodes
+    if depth == 0
+        for k in keys(db)
+            if length(k) == 1
+                delete!(db, k)
+            end
         end
     end
 

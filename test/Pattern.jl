@@ -29,17 +29,19 @@ sequence = data
 # grow_depth_first!
 # 
 
+min_utility = 0.16 # 000337
 min_sup     = 2 #round(Int64,50000/2^15)
-unique      = false
+unique      = true
 unique_n    = 1
-similar     = true
+similar     = false
 overlapping = false
-gap         = 2
+gap         = 0
 set         = :all
 N = Int64
 
 # data = readcsv("data/kate/51750S_6154V_148N_3K_15E_1234seed_embedded_KATE_clustered_kmeans_51750P_300k.csv")
 # sequence = map(n->convert(Int64,n), data[:,1])
+# sequence = reverse(sequence)
 # sequence = reverse(sequence)
 # consequents = [119]
 
@@ -50,7 +52,17 @@ N = Int64
 function test_grow_depth_first(sequence)
 
 vertical = Index.invert(sequence)
-alphabet = sort(collect(keys(vertical)))
+# @show vertical
+# alphabet = sort(collect(vertical), by = (k,v) -> v )
+alphabet = map(kv->kv[1], sort(collect(vertical), by = kv -> length(kv[2]), rev=true))
+# @show alphabet
+
+utilities = nothing
+# utilities = Dict{Int64,Int64}(map(k -> k => k, alphabet))
+# max_occ = maximum(map(length,values(vertical)))
+# utilities = Dict{Int64,Int64}(map(k -> k => 1 + max_occ - length(vertical[k]), alphabet))
+utilities = Dict{Int64,Int64}(map(k -> k => length(vertical[k]), alphabet))
+total_utility = sum(e->utilities[e], sequence)
 # alphabet = [5]
 # alphabet = [11,72,119,276]
 # vertical_pairs = Index.pairs(sequence, gap=gap)
@@ -98,6 +110,9 @@ for _ in 1:1
             length(sequence),
             vertical,
             alphabet;
+            utilities = utilities,
+            total_utility = total_utility,
+            min_utility = min_utility,
             min_sup = min_sup,
             unique = unique,
             unique_n = unique_n,
@@ -115,6 +130,9 @@ for _ in 1:1
             length(sequence),
             vertical,
             alphabet;
+            utilities = utilities,
+            total_utility = total_utility,
+            min_utility = min_utility,
             min_sup = min_sup,
             unique = unique,
             unique_n = unique_n,
@@ -144,8 +162,8 @@ length(keys(db))
 reduce((p,l)->p+length(l), 0, flatmap(identity, collect(values(db))))
 
 filter(v -> v!=nothing,
-    map(k -> length(db[k]) >= min_sup ? (length(db[k]),k) : nothing, 
-        filter(k -> length(k) >= 2, collect(keys(db)))))
+    map(k -> length(db[k]) >= min_sup ? (length(db[k]),length(k),k,db[k]) : nothing, 
+        filter(k -> length(k) >= 3, collect(keys(db)))))
 
 # sort(collect(keys(db)), rev=true)
 
