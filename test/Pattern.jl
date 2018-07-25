@@ -4,8 +4,8 @@ using LogClustering.Index
 using LogClustering.Sort: isless
 using LogClustering.Sequence: flatmap
 using DataStructures: OrderedDict, Trie
-using BenchmarkTools, Compat
-using ProfileView
+# using BenchmarkTools, Compat
+# using ProfileView
 
 #            A B C E D G E A B C F E E A B D 
 data = Int64[1,2,3,5,4,8,5,1,2,3,7,5,5,1,2,4]
@@ -29,18 +29,21 @@ sequence = data
 # grow_depth_first!
 # 
 
-min_utility = 0.999 # 000337
-min_sup     = 2 #round(Int64,50000/2^15)
+min_utility = 0.999
+min_sup     = 1000
 unique      = true
 unique_n    = 2
-similar     = true
+similar     = false
 overlapping = false
-gap         = -1
+gap         = 1
 set         = :all
 N = Int64
 
 # data = readcsv("data/kate/51750S_6154V_148N_3K_15E_1234seed_embedded_KATE_clustered_kmeans_51750P_300k.csv")
-# sequence = map(n->convert(Int64,n), data[:,1])
+data = readdlm("data/embedding/playground/2018-07-25_assignments.csv")
+data = readdlm("data/embedding/playground/2018-07-25_assignments_and_reconstruction_error.csv")
+sequence = map(n->convert(Int64,n), data[:,1])
+
 # sequence = reverse(sequence)
 # sequence = reverse(sequence)
 # consequents = [119]
@@ -56,8 +59,8 @@ total_utility = 1
 # utilities = Dict{Int64,Int64}(map(k -> k => k, alphabet))
 # max_occ = maximum(map(length,values(vertical)))
 # utilities = Dict{Int64,Int64}(map(k -> k => 1 + max_occ - length(vertical[k]), alphabet))
-# utilities = Dict{Int64,Int64}(map(k -> k => length(vertical[k]), alphabet))
-# total_utility = sum(e->utilities[e], sequence)
+utilities = Dict{Int64,Int64}(map(k -> k => length(vertical[k]), alphabet))
+total_utility = sum(e->utilities[e], sequence)
 
 # alphabet = [5]
 # alphabet = [11,72,119,276]
@@ -76,7 +79,7 @@ db = OrderedDict{Vector{N},Vector{Vector{N}}}()
 timing = Vector()
 first = true
 # Profile.clear()
-for _ in 1:30
+for _ in 1:1
     # db = OrderedDict{Vector{N},Vector{Vector{N}}}()
     # for (key,rs) in collect(vertical_pairs)
     #     S = length(rs)

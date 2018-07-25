@@ -183,7 +183,10 @@ function grow_depth_first!{N<:Number}(
                 end
             end
             foundat = Vector{Int64}()
-            s_extension = vcat(pattern, s_ext)
+            # s_extension = vcat(pattern, s_ext)
+            s_extension = Array{Int64}(depth+2)
+            s_extension[1:depth+1] = pattern
+            s_extension[end] = s_ext
 
             # TODO intersect all keys with s_extension
 
@@ -207,7 +210,10 @@ function grow_depth_first!{N<:Number}(
                     end
                     
                     if candidate >= start # && candidate <= stop # (implicitly)
-                        occurence = vcat(db[pattern][i], candidate)
+                        # occurence = vcat(db[pattern][i], candidate)
+                        occurence = Array{Int64}(depth+2)
+                        occurence[1:depth+1] = db[pattern][i]
+                        occurence[end] = candidate
                         # @show s_ext, start, stop, candidate, pattern, s_extension, occurence
                         if haskey(db, s_extension)
                             if overlapping
