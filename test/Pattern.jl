@@ -41,8 +41,8 @@ set         = :all
 N = Int64
 
 # data = readcsv("data/kate/51750S_6154V_148N_3K_15E_1234seed_embedded_KATE_clustered_kmeans_51750P_300k.csv")
-# data = readdlm("data/embedding/playground/2018-07-25_assignments.csv")
-# data = readdlm("data/embedding/playground/2018-07-25_assignments_and_reconstruction_error.csv")
+# data = readdlm("data/embedding/playground/2018-07-25_51750_assignments.csv")
+# data = readdlm("data/embedding/playground/2018-07-25_51750_assignments_and_reconstruction_error.csv")
 # sequence = map(n->convert(Int64,n), data[:,1])
 
 # sequence = reverse(sequence)
