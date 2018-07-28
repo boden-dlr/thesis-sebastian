@@ -1,6 +1,6 @@
 using LogClustering: Index
 
-Intervall = UnitRange{Int64}
+
 
 function support(moSet, episode)
     length(moSet[episode])
@@ -47,6 +47,8 @@ end
 # transaction/sequence weighted utility (TWU/SWU)
 # function swu()
 # end
+
+Intervall = UnitRange{Int64}
 
 function s_concatenation!(
     sequence::Vector{Int64},
@@ -168,15 +170,14 @@ end
 sequence = Int64[1,2,3,5,4,8,5,1,2,3,7,5,5,1,2,4]
 #                0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1
 #                1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6
+# utilities = Float64[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8]
 
-utilities = Float64[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8]
-# utilities = fill(1.0, maximum(sequence))
 
 data = readdlm("data/embedding/playground/2018-07-25_assignments_and_reconstruction_error.csv")
 sequence = map(n->convert(Int64,n), data[:,1])
 utilities = map(n->convert(Float64,n), data[:,2])
-# utilities = rand(maximum(sequence))
-# utilities = fill(1.0, maximum(sequence))
+max_utilitly = maximum(utilities)
+utilities = map(u->(u/max_utilitly)^100, utilities)
 
 # event = 702
 # occs = Vector{UnitRange{Int64}}()
@@ -189,21 +190,29 @@ utilities = map(n->convert(Float64,n), data[:,2])
 # prefix = [event]
 # moSet = Dict([event] => occs)
 
+
+# utilities = rand(maximum(sequence))
+# utilities = fill(1.0, maximum(sequence))
+
+
 vertical = Index.invert(sequence)
 moSet = Dict(map(kv -> [kv[1]] => map(v -> v:v, kv[2]), collect(vertical)))
 hueSet = Dict{Vector{Int64},Vector{Intervall}}()
-max_duration = 20
-min_support  = 5000
+max_duration = 1
+min_support  = 2600
 min_utililty = 0.000038764
+min_utililty = 0.00004945573
 tu = total_utility(sequence, utilities)
 
 # ru = tu / length(sequence)
 # ru = (ru / length(sequence))^2.5
-# correction term = length(sequence) / (mtd+1)
+utilitly_correction = length(sequence) / (min(max_duration+1, length(sequence)))
 # min_utililty = 0.6
 
-for prefix in deepcopy(keys(moSet))
-    t_span!(
+ts = Vector{Tuple{Vector{Int},Float64,Base.GC_Diff}}()
+for prefix in sort(collect(keys(moSet)), by=x->x[1])
+    @show prefix
+    t = @timed @time t_span!(
         sequence,     # ES - event sequence
         utilities,    #
         prefix,       # alpha
@@ -214,7 +223,7 @@ for prefix in deepcopy(keys(moSet))
         min_utililty, # min_utililty
         tu,           # total_utility
         prefix)       # initial SES == prefix
-                      
+    push!(ts, (prefix,t[2],t[5]))
 end
 #sort(collect(moSet), by=kv->length(kv[1]), rev=false)
 sort(collect(hueSet), by=kv->(length(kv[2]),length(kv[1])), rev=false)
@@ -224,3 +233,11 @@ moSet
 
 hueSet[[1,2,5]]
 hueSet[[5,5]]
+
+secs = map(t -> t[2], ts)
+minimum(secs)
+median(secs)
+mean(secs)
+maximum(secs)
+
+indmax(secs)
