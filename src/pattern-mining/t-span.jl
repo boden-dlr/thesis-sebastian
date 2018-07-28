@@ -116,6 +116,7 @@ function s_concatenation!(
                         # push!(betaSet, beta) # union
                         push!(moSet[beta], moBeta)
                     
+                        # for beta in betaSet ...                        
                         if support(moSet, beta) >= min_sup && ewu(total_utility, utilities, beta, moSet) >= min_utililty
                             if utility(utilities, beta) >= min_utililty
                             # if relative_utility(total_utility, utilities, beta) >= min_utililty
@@ -150,15 +151,6 @@ function s_concatenation!(
             end
         end
     end
-
-    # for beta in betaSet
-    #     if ewu(total_utility, utilities, beta, moSet) >= min_utililty && support(moSet, beta) >= min_sup
-    #         if utility(utilities, beta) >= min_utililty
-    #             hueSet[beta] = sort(moSet[beta], by=r->r.start)
-    #         end
-    #         # TSpan...
-    #     end
-    # end
 end
 
 
@@ -218,14 +210,14 @@ utilities = map(u->(u/max_utilitly)^100, utilities)
 # moSet = Dict([event] => occs)
 
 
-utilities = rand(maximum(sequence))
+# utilities = rand(maximum(sequence))
 # utilities = fill(1.0, maximum(sequence))
 
 
 vertical = Index.invert(sequence)
 moSet = Dict(map(kv -> [kv[1]] => map(v -> v:v, kv[2]), collect(vertical)))
 hueSet = Dict{Vector{Int64},Vector{Intervall}}()
-max_duration = 0
+max_duration = 1
 min_support  = 2
 min_utililty = 0.000038764
 min_utililty = 0.00004945573
@@ -262,8 +254,8 @@ sort(collect(hueSet), by=kv->(length(kv[2]),length(kv[1])), rev=false)
 hueSet
 moSet
 
-hueSet[[1,2,5]]
-hueSet[[5,5]]
+# hueSet[[1,2,5]] # sup:2
+# hueSet[[5,5]]   # sup:3
 
 secs = map(t -> t[2], ts)
 minimum(secs)
