@@ -147,16 +147,52 @@ vec_t
 
 using DataStructures
 
-struct Node
-    parent::Array{Node}
-    value::Char
-    children::Array{Node}
+# struct Node{K,V}
+#     parent::Union{Void,Node}
+#     children::Vector{Node}
+#     is_key
+#     key::eltype{K}
+#     value::Union{Void,V}
+# end
+
+# struct Trie{K,V}
+#     children::Vector{Node{T}}
+#     function Tree(d::Dict{K,V}) where K <: Union{AbstractString,AbstractArray}
+#         children = Vector{Node{T}}(length(keys(d)))
+#         for k in keys(d)
+            
+#         end
+#     end
+# end
+
+# Tree(Dict("hello"=>0))
+
+# mutable struct Relation
+#     to::Vector{Int64}
+#     by::Vector{Int64}
+# end
+
+# mutable struct Node
+#     relations::Union{Void,Vector{Int64}}
+# end
+
+# mutable struct Graph{K,V}
+#     nodes::Vector{Node}
+#     nodes_by_key::Dict{K,Vector{Int64}}
+#     nodes_by_value::Dict{V,Vector{Int64}}
+#     relations::Vector{Relation}
+#     relations_by_key::Dict{K,Vector{Int64}}
+#     relations_by_value::Dict{V,Vector{Int64}}
+# end
+
+# Relation() = Relation([1],[])
+
+# IntGraph{V} = Graph{I,V}(
+#     nodes = Vector{Node}()
+#     ) where I <: Integer
+
+mutable struct Graph
+    nodes::
 end
 
-struct Tree
-    children::Array{Node}
-    function Tree(d::Dict{Char,UInt32})
-    end
-end
 
-Tree(Dict('h'=>0))
