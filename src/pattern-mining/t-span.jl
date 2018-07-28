@@ -32,6 +32,14 @@ function ewu(total_utility, utilities, episode, moSet)
     u = u * length(moSet[episode]) / total_utility
 end
 
+# IESC (Improved estimation of EWU for S-Concatenation)
+# 
+# IESC(α) = (u(α) + u(SES(α)))/u(CES).
+# 
+function iesc(total_utility, utilities, alpha, SES)
+    (utility(utilities, alpha) + utility(utilities, SES)) / total_utility
+end
+
 # transaction/sequence weighted utility (TWU/SWU)
 # function swu()
 # end
@@ -51,12 +59,14 @@ function s_concatenation!(
     l = length(prefix)
 
     for range in moSet[prefix]
-        for t in range.stop+1:min(range.start+mtd+1,length(sequence))        
+        I = range.stop+1:min(range.start+mtd+1,length(sequence))
+        SES = sequence[I]
+        for t in I
             # for simple event sequences there is only one event `e`
             # otherwise we need a loop for each event `e` (for all simultaniuos)
             beta = Vector{Int64}(l+1)
             beta[1:l] = prefix
-            beta[end] = sequence[t] # event `e`
+            beta[end] = sequence[t] # event `e` of SES
             if !haskey(moSet, beta)
                 moSet[beta] = []
             end
@@ -89,17 +99,18 @@ function s_concatenation!(
                 
                             # TSpan condition...
                             # if IESC(α) ≥ min utility then
-                
-                            s_concatenation!(
-                                sequence,
-                                utilities,
-                                beta,
-                                moSet,
-                                hueSet,
-                                mtd,
-                                min_sup,
-                                min_utililty,
-                                total_utility)
+                            if iesc(total_utility, utilities, beta, SES) >= min_utililty
+                                s_concatenation!(
+                                    sequence,
+                                    utilities,
+                                    beta,
+                                    moSet,
+                                    hueSet,
+                                    mtd,
+                                    min_sup,
+                                    min_utililty,
+                                    total_utility)
+                            end
                         end
                     end
                 end
@@ -136,7 +147,7 @@ end
 # end
 
 # function t_span()
-#     tu = 
+#      tu = 
 # end
 
 #                A B C E D G E A B C F E E A B D 
@@ -144,12 +155,13 @@ sequence = Int64[1,2,3,5,4,8,5,1,2,3,7,5,5,1,2,4]
 #                0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1
 #                1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6
 
-utilities = Float64[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8]
+# utilities = Float64[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8]
+utilities = fill(1.0, maximum(sequence))
 
-# data = readdlm("data/embedding/playground/2018-07-25_assignments_and_reconstruction_error.csv")
-# sequence = map(n->convert(Int64,n), data[:,1])
-# # utilities = rand(maximum(sequence))
-# utilities = fill(1.0, maximum(sequence))
+data = readdlm("data/embedding/playground/2018-07-25_assignments_and_reconstruction_error.csv")
+sequence = map(n->convert(Int64,n), data[:,1])
+# utilities = rand(maximum(sequence))
+utilities = fill(1.0, maximum(sequence))
 
 # event = 702
 # occs = Vector{UnitRange{Int64}}()
@@ -165,9 +177,9 @@ utilities = Float64[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8]
 vertical = Index.invert(sequence)
 moSet = Dict(map(kv -> [kv[1]] => map(v -> v:v, kv[2]), collect(vertical)))
 hueSet = Dict{Vector{Int64},Vector{Intervall}}()
-max_duration = 16
-min_support  = 2
-min_utililty = 0.0
+max_duration = 10
+min_support  = 1
+min_utililty = 0.35
 tu = total_utility(sequence, utilities)
 
 for prefix in deepcopy(keys(moSet))
@@ -190,3 +202,4 @@ hueSet
 moSet
 
 hueSet[[1,2,5]]
+hueSet[[5,5]]
