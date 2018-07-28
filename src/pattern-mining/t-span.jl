@@ -18,6 +18,10 @@ function utility(utilities, episode)
     u
 end
 
+function relative_utility(total_utility, utilities, episode)
+    utility(utilities, episode) / total_utility
+end
+
 function total_utility(sequence, utilities)
     tu = 0.0
     for event in sequence
@@ -88,29 +92,29 @@ function s_concatenation!(
                     moSet[beta] = filter(r->!(r in N), moSet[beta])
                     push!(moSet[beta], moBeta)
                 else
-                    if all(r -> r.stop <= moBeta.start, moSet[beta])
+                    if all(r -> r.stop <= moBeta.start, moSet[beta]) # N ???
                         union!(betaSet, Set([beta]))
                         push!(moSet[beta], moBeta)
                     
                         if support(moSet, beta) >= min_sup && ewu(total_utility, utilities, beta, moSet) >= min_utililty
                             if utility(utilities, beta) >= min_utililty
+                            # if relative_utility(total_utility, utilities, beta) >= min_utililty
                                 hueSet[beta] = moSet[beta] # sort(moSet[beta], by=r->r.start)
                             end
                 
                             # TSpan condition...
                             # if IESC(α) ≥ min utility then
-                            if iesc(total_utility, utilities, beta, SES) >= min_utililty
-                                s_concatenation!(
-                                    sequence,
-                                    utilities,
-                                    beta,
-                                    moSet,
-                                    hueSet,
-                                    mtd,
-                                    min_sup,
-                                    min_utililty,
-                                    total_utility)
-                            end
+                            t_span!(
+                                sequence,
+                                utilities,
+                                beta,
+                                moSet,
+                                hueSet,
+                                mtd,
+                                min_sup,
+                                min_utililty,
+                                total_utility,
+                                SES)
                         end
                     end
                 end
@@ -123,45 +127,56 @@ function s_concatenation!(
     #         if utility(utilities, beta) >= min_utililty
     #             hueSet[beta] = sort(moSet[beta], by=r->r.start)
     #         end
-
-    #         # TSpan condition...
-    #         # if IESC(α) ≥ min utility then
-
-    #         s_concatenation!(
-    #             sequence,
-    #             utilities,
-    #             beta,
-    #             moSet,
-    #             hueSet,
-    #             mtd,
-    #             min_sup,
-    #             min_utililty,
-    #             total_utility)
+    #         # TSpan...
     #     end
     # end
 end
 
-# function up_span()
-#     tu = total_utility()
-#     if
-# end
 
-# function t_span()
-#      tu = 
-# end
+function t_span!(
+    sequence,
+    utilities,
+    alpha,
+    moSet,
+    hueSet,
+    mtd,
+    min_sup,
+    min_utililty,
+    total_utility,
+    SES)
+
+
+    if support(moSet, alpha) >= min_sup && iesc(total_utility, utilities, alpha, SES) >= min_utililty
+        # @show support(moSet, alpha)
+        # @show iesc(total_utility, utilities, alpha, SES)
+        s_concatenation!(
+            sequence,
+            utilities,
+            alpha,
+            moSet,
+            hueSet,
+            mtd,
+            min_sup,
+            min_utililty,
+            total_utility)
+            # no SES
+    end
+    
+end
 
 #                A B C E D G E A B C F E E A B D 
 sequence = Int64[1,2,3,5,4,8,5,1,2,3,7,5,5,1,2,4]
 #                0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1
 #                1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6
 
-# utilities = Float64[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8]
-utilities = fill(1.0, maximum(sequence))
+utilities = Float64[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8]
+# utilities = fill(1.0, maximum(sequence))
 
 data = readdlm("data/embedding/playground/2018-07-25_assignments_and_reconstruction_error.csv")
 sequence = map(n->convert(Int64,n), data[:,1])
+utilities = map(n->convert(Float64,n), data[:,2])
 # utilities = rand(maximum(sequence))
-utilities = fill(1.0, maximum(sequence))
+# utilities = fill(1.0, maximum(sequence))
 
 # event = 702
 # occs = Vector{UnitRange{Int64}}()
@@ -177,13 +192,18 @@ utilities = fill(1.0, maximum(sequence))
 vertical = Index.invert(sequence)
 moSet = Dict(map(kv -> [kv[1]] => map(v -> v:v, kv[2]), collect(vertical)))
 hueSet = Dict{Vector{Int64},Vector{Intervall}}()
-max_duration = 10
-min_support  = 1
-min_utililty = 0.35
+max_duration = 20
+min_support  = 5000
+min_utililty = 0.000038764
 tu = total_utility(sequence, utilities)
 
+# ru = tu / length(sequence)
+# ru = (ru / length(sequence))^2.5
+# correction term = length(sequence) / (mtd+1)
+# min_utililty = 0.6
+
 for prefix in deepcopy(keys(moSet))
-    s_concatenation!(
+    t_span!(
         sequence,     # ES - event sequence
         utilities,    #
         prefix,       # alpha
@@ -193,7 +213,8 @@ for prefix in deepcopy(keys(moSet))
         min_support,  # absolute minumum support
         min_utililty, # min_utililty
         tu,           # total_utility
-        )
+        prefix)       # initial SES == prefix
+                      
 end
 #sort(collect(moSet), by=kv->length(kv[1]), rev=false)
 sort(collect(hueSet), by=kv->(length(kv[2]),length(kv[1])), rev=false)
