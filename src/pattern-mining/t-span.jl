@@ -200,11 +200,11 @@ sequence = Int64[1,2,3,5,4,8,5,1,2,3,7,5,5,1,2,4]
 # utilities = Float64[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8]
 
 
-# data = readdlm("data/embedding/playground/2018-07-25_assignments_and_reconstruction_error.csv")
-# sequence = map(n->convert(Int64,n), data[:,1])
-# utilities = map(n->convert(Float64,n), data[:,2])
-# max_utilitly = maximum(utilities)
-# utilities = map(u->(u/max_utilitly)^100, utilities)
+data = readdlm("data/embedding/playground/2018-07-25_assignments_and_reconstruction_error.csv")
+sequence = map(n->convert(Int64,n), data[:,1])
+utilities = map(n->convert(Float64,n), data[:,2])
+max_utilitly = maximum(utilities)
+utilities = map(u->(u/max_utilitly)^100, utilities)
 
 # event = 702
 # occs = Vector{UnitRange{Int64}}()
@@ -225,8 +225,8 @@ utilities = rand(maximum(sequence))
 vertical = Index.invert(sequence)
 moSet = Dict(map(kv -> [kv[1]] => map(v -> v:v, kv[2]), collect(vertical)))
 hueSet = Dict{Vector{Int64},Vector{Intervall}}()
-max_duration = 16
-min_support  = 1
+max_duration = 0
+min_support  = 2
 min_utililty = 0.000038764
 min_utililty = 0.00004945573
 tu = total_utility(sequence, utilities)
@@ -237,11 +237,12 @@ utilitly_correction = length(sequence) / (min(max_duration+1, length(sequence)))
 # min_utililty = 0.6
 
 using ProfileView
+
 Profile.clear()
 ts = Vector{Tuple{Vector{Int},Float64,Base.GC_Diff}}()
-for prefix in sort(collect(keys(moSet)), by=x->x[1])
+@profile for prefix in sort(collect(keys(moSet)), by=x->x[1])
     @show prefix
-    t = @profile @timed t_span!(
+    t = @timed t_span!(
         sequence,     # ES - event sequence
         utilities,    #
         prefix,       # alpha
