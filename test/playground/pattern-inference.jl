@@ -16,12 +16,12 @@ using Flux: throttle, crossentropy
 
 # file = readlines("data/datasets/test/syslog")
 # file = readlines("data/datasets/RCE/2017-11-28_08-08-42_129250.log")
-# file = readlines("data/datasets/RCE/2018-03-01_15-11-18_51750.log")
+file = readlines("data/datasets/RCE/2018-03-01_15-11-18_51750.log")
 # file = readlines("data/datasets/RCE/2018-03-01_15-07-59_7296.log")
 # file = readlines("data/datasets/RCE/2014-12-02_08-58-09_1048.log")
 # file = readlines("data/datasets/RCE/2018-02-09_10-04-25_1286.log")
 # file = readlines("data/datasets/RCE/2017-10-19_10-29-57_1387.log")
-file = readlines("data/datasets/RCE/2017-02-24_10-26-01_6073.log")
+# file = readlines("data/datasets/RCE/2017-02-24_10-26-01_6073.log")
 # file = readlines("/home/sebastian/data/log/1999_kddcup.data.corrected")[rand(1:4_898_431, 10_000)]
 # file = readlines("/home/sebastian/data/log/event-logs/real/BPI Challenge 2017.xes")[rand(1:4_898_431, 10_000)]
 N = length(file)
@@ -230,9 +230,9 @@ normalized_matrix = hcat(normalized...)'
 # 
 # embed input (encoded phrases)
 # 
-seed = rand(1:10000)
+# seed = rand(1:10000)
 # seed = 7040,
-# seed = 9038 +++++
+seed = 9038 # +++++
 # seed = 7285
 
 n_neighbors=10
@@ -358,6 +358,13 @@ clustered = dbscan(embedded, radius)
 
 assignments = clustering_to_assignments(clustered)
 C = assignments_to_clustering(assignments)
+
+data_a_r = hcat(assignments, reconstruction_error_abs)
+
+writedlm(string(
+    "data/embedding/playground/",
+    Dates.today(),
+    "_assignments_and_reconstruction_error.csv"), data_a_r)
 
 # figure_raw = scatter(embedded_t[:,1], embedded_t[:,2],
 #     marker_z = assignments,
@@ -608,3 +615,5 @@ for i in 1:3
 end
 
 piped[C_sorted[3]]
+
+regexp = RegExp.infer(piped[C[472]])
