@@ -29,24 +29,25 @@ sequence = data
 # grow_depth_first!
 # 
 
-min_utility = 0.999
-min_sup     = 1000
-unique      = true
-unique_n    = 2
-similar     = false
+utility_measure = nothing #:external :local :average
+min_utility = 0.000025 # external:0.000025, local:0.999, :average=0.1-0.05
+min_sup     = 3
+unique      = false
+unique_n    = 1
+similar     = true
 overlapping = false
-gap         = 1
+gap         = -1
 set         = :all
 N = Int64
 
 # data = readcsv("data/kate/51750S_6154V_148N_3K_15E_1234seed_embedded_KATE_clustered_kmeans_51750P_300k.csv")
-data = readdlm("data/embedding/playground/2018-07-25_assignments.csv")
-data = readdlm("data/embedding/playground/2018-07-25_assignments_and_reconstruction_error.csv")
-sequence = map(n->convert(Int64,n), data[:,1])
+# data = readdlm("data/embedding/playground/2018-07-25_assignments.csv")
+# data = readdlm("data/embedding/playground/2018-07-25_assignments_and_reconstruction_error.csv")
+# sequence = map(n->convert(Int64,n), data[:,1])
 
 # sequence = reverse(sequence)
 # sequence = reverse(sequence)
-# consequents = [119]
+# consequents = [5]
 
 # TODO:NOTE: JULIA BUG in OrderedDict!
 # vertical = OrderedDict(sort(Index.invert(sequence)))
@@ -104,9 +105,9 @@ for _ in 1:1
     # extend = reverse(collect(map(k->[k],keys(vertical))))
     # extend = reverse(collect(keys(db)))
     extend = sort(collect(keys(db)))
-    # extend = [[1]]
+    # extend = [[5,1,2]]
     # extend = map(c->[c], consequents)
-    @show extend
+    # @show extend
 
     
     if first
@@ -118,6 +119,7 @@ for _ in 1:1
             length(sequence),
             vertical,
             alphabet;
+            utility_measure = utility_measure,
             utilities = utilities,
             total_utility = total_utility,
             min_utility = min_utility,
@@ -138,6 +140,7 @@ for _ in 1:1
             length(sequence),
             vertical,
             alphabet;
+            utility_measure = utility_measure,
             utilities = utilities,
             total_utility = total_utility,
             min_utility = min_utility,

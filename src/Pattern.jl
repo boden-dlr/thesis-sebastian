@@ -102,13 +102,14 @@ function external_utility(utilities, total_utility, episode)
     u_sum / total_utility
 end
 
-function avg_utility(utilities, total_utility, len, episode)
+
+function avg_utility(utilities, total_utility, total_length, episode)
     u_sum = 0
     for e in episode
         u_sum += utilities[e]
     end
     # (u_sum / length(episode) * total_utility / len) / total_utility
-    min(1.0, (u_sum / length(episode) / len))
+    min(1.0, (u_sum / length(episode) / total_length))
 end
 
 
@@ -119,7 +120,8 @@ function grow_depth_first!{N<:Number}(
     len::Int64,
     vertical::Dict{N,Vector{N}},
     alphabet::Vector{N}; # TODO: CMAP?
-    utilities::Union{Void,Dict{Int64,Int64}} = nothing,
+    utility_measure::Union{Void,Symbol} = :external, # :external, local, average
+    utilities::Union{Void,Dict{Int64,Int64},Vector{Int64}} = nothing,
     total_utility = len,
     min_utility = 0.0,
     min_sup     = 1,
@@ -144,12 +146,18 @@ function grow_depth_first!{N<:Number}(
             continue
         end
 
-        # println(avg_utility(utilities, total_utility, len, pattern), "\t", pattern)
-        # if utilities != nothing && avg_utility(utilities, total_utility, len, pattern) < min_utility
-        # println(local_utility(utilities, pattern), "\t", pattern)
-        if utilities != nothing && local_utility(utilities, pattern) < min_utility
-            delete!(db, pattern)
-            continue
+        if utility_measure != nothing
+            # println(utility...(utilities, pattern), "\t", pattern)
+            if utility_measure == :external && external_utility(utilities, total_utility, pattern) < min_utility
+                delete!(db, pattern)
+                continue
+            elseif utility_measure == :average  && avg_utility(utilities, total_utility, len, pattern) < min_utility
+                delete!(db, pattern)
+                continue
+            elseif utility_measure == :local && local_utility(utilities, pattern) < min_utility
+                delete!(db, pattern)
+                continue
+            end
         end
         
         if !similar
@@ -240,6 +248,7 @@ function grow_depth_first!{N<:Number}(
                 grow_depth_first!(
                     db, [s_extension],
                     sequence, len, vertical, alphabet;
+                    utility_measure = utility_measure,
                     utilities = utilities,
                     total_utility = total_utility,
                     min_utility = min_utility,
