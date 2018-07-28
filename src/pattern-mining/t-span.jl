@@ -59,30 +59,38 @@ function s_concatenation!(
     mtd::Int64,
     min_sup::Int64,
     min_utililty::Float64,
-    total_utility::Float64)
+    total_utility::Float64,
+    max_repetition::Int64)
 
     # betaSet = Set{Vector{Int64}}()
     l = length(prefix)
 
     for range in moSet[prefix]
         I = range.stop+1:min(range.start+mtd+1,length(sequence))
-        SES = @view sequence[I]
+        SES = @view sequence[I] # Set{Int64}()
         for t in I
             # for simple event sequences there is only one event `e`
             # otherwise we need a loop for each event `e` (for all simultaniuos)
             beta = Vector{Int64}(l+1)
             beta[1:l] = prefix
             beta[end] = sequence[t] # event `e` of SES
+
+            c = 0
+            for e in beta
+                if e == sequence[t]
+                    c += 1
+                end
+            end
+            if c > max_repetition
+                break
+            end
+
             if !haskey(moSet, beta)
                 moSet[beta] = Int64[]
             end
+
             moBeta::Intervall = range.start:t
             # M = { mo | if is mo subset of moBeta }
-            # M = filter(x -> x != nothing, [
-            #     (
-            #         mo.start >= moBeta.start && mo.stop <= moBeta.stop
-            #     ) ? mo : nothing
-            #     for mo in moSet[beta]])
             M = Vector{Vector{Int64}}()
             for mo in moSet[beta]
                 if mo.start >= moBeta.start && mo.stop <= moBeta.stop
@@ -91,11 +99,6 @@ function s_concatenation!(
             end
             if isempty(M)
                 # N = { mo | if moBeta is proper subset of mo }
-                # N = filter(x -> x != nothing, [
-                #     (
-                #         moBeta.start > mo.start && moBeta.stop <= mo.stop
-                #     ) ? mo : nothing
-                #     for mo in moSet[beta]])
                 N = Vector{Vector{Int64}}()
                 for mo in moSet[beta]
                     if moBeta.start > mo.start && moBeta.stop <= mo.stop
@@ -142,8 +145,8 @@ function s_concatenation!(
                                     mtd,
                                     min_sup,
                                     min_utililty,
-                                    total_utility)
-                                    # SES)
+                                    total_utility,
+                                    max_repetition)
                             end
                         end
                     end
@@ -164,8 +167,8 @@ function t_span!(
     min_sup::Int64,
     min_utililty::Float64,
     total_utility::Float64,
+    max_repetition::Int64,
     SES::Vector{Int64})
-
 
     if support(moSet, prefix) >= min_sup && iesc(total_utility, utilities, prefix, SES) >= min_utililty
         # @show support(moSet, prefix)
@@ -179,8 +182,8 @@ function t_span!(
             mtd,
             min_sup,
             min_utililty,
-            total_utility)
-            # no SES
+            total_utility,
+            max_repetition)
     end
     
 end
@@ -190,9 +193,11 @@ sequence = Int64[1,2,3,5,4,8,5,1,2,3,7,5,5,1,2,4]
 #                0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1
 #                1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6
 # utilities = Float64[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8]
+# utilities = rand(maximum(sequence))
+utilities = fill(1.0, maximum(sequence))
 
-
-data = readdlm("data/embedding/playground/2018-07-25_assignments_and_reconstruction_error.csv")
+data = readdlm("data/embedding/playground/2018-07-25_51750_assignments_and_reconstruction_error.csv")
+# data = readdlm("data/embedding/playground/2018-07-28_6073_assignments_and_reconstruction_error.csv")
 sequence = map(n->convert(Int64,n), data[:,1])
 utilities = map(n->convert(Float64,n), data[:,2])
 max_utilitly = maximum(utilities)
@@ -217,16 +222,23 @@ utilities = map(u->(u/max_utilitly)^100, utilities)
 vertical = Index.invert(sequence)
 moSet = Dict(map(kv -> [kv[1]] => map(v -> v:v, kv[2]), collect(vertical)))
 hueSet = Dict{Vector{Int64},Vector{Intervall}}()
-max_duration = 1
-min_support  = 2
+max_duration = 2
+min_support  = 1
 min_utililty = 0.000038764
 min_utililty = 0.00004945573
 tu = total_utility(sequence, utilities)
+max_repetition = 2
 
 # ru = tu / length(sequence)
 # ru = (ru / length(sequence))^2.5
 utilitly_correction = length(sequence) / (min(max_duration+1, length(sequence)))
 # min_utililty = 0.6
+
+blacklist_51750 = [468, 493, 512, 528, 547, 565, 575, 584, 593, 603, 620, 629, 630, 631, 632, 643, 646, 674, 715, 717, 718, 721, 722, 728, 729, 731, 732, 735, 736, 770]
+candidate_blacklist = [616, 638, 739, 746, 749, 769, 773, 776]
+for event in sort(collect(keys(vertical)))
+    println(event, "\t", event in blacklist_51750, "\t", event in candidate_blacklist, "\t", length(vertical[event]))
+end
 
 using ProfileView
 
@@ -234,6 +246,9 @@ Profile.clear()
 ts = Vector{Tuple{Vector{Int},Float64,Base.GC_Diff}}()
 @profile for prefix in sort(collect(keys(moSet)), by=x->x[1])
     @show prefix
+    if prefix[1] in blacklist_51750
+    t = @timed 1+1
+    else
     t = @timed t_span!(
         sequence,     # ES - event sequence
         utilities,    #
@@ -244,12 +259,14 @@ ts = Vector{Tuple{Vector{Int},Float64,Base.GC_Diff}}()
         min_support,  # absolute minumum support
         min_utililty, # min_utililty
         tu,           # total_utility
+        max_repetition,
         prefix)       # initial SES == prefix
+    end
     push!(ts, (prefix,t[2],t[5]))
 end
 ProfileView.view()
 #sort(collect(moSet), by=kv->length(kv[1]), rev=false)
-sort(collect(hueSet), by=kv->(length(kv[2]),length(kv[1])), rev=false)
+sort(collect(hueSet), by=kv->(length(kv[1]),length(kv[2])), rev=false)
 
 hueSet
 moSet
@@ -265,6 +282,6 @@ maximum(secs)
 
 indmax(secs)
 
-while true
-    sleep(5)
-end
+# while true
+#     sleep(5)
+# end
