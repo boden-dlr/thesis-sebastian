@@ -10,9 +10,13 @@ using DataStructures: OrderedDict, SortedDict, Reverse
 # 
 pretrained = "data/pretrained/word2vec/GoogleNews-vectors-negative300.bin"
 
-# CAUTION: this is heavy as it loads the whole model into RAM (3.6GB)
-# model = load_word2vec_format(pretrained, binary=true)
+# CAUTION: this is heavy as it loads the whole model into RAM.
+# 
+#  GoogleNews-vectors-negative300.bin   3.6GB
+# 
+model = load_word2vec_format(pretrained, binary=true)
 # map(println,keys(model))
+# typeof(model)
 
 queen, king, man, woman, car  = map(model[:get_vector], 
     ["queen", "king", "man", "woman", "car"])
@@ -22,6 +26,26 @@ cor(queen, king - man + woman)
 cor(man, car)
 cor(woman, car)
 
+cor(model[:get_vector]("two"), model[:get_vector]("2"))
+cor(model[:get_vector]("second"), model[:get_vector]("2"))
+cor(model[:get_vector]("twice"), model[:get_vector]("2"))
+cor(model[:get_vector]("segundo"), model[:get_vector]("2"))
+cor(model[:get_vector]("zwei"), model[:get_vector]("2"))
+cor(model[:get_vector]("zweite"), model[:get_vector]("2"))
+cor(model[:get_vector]("zweite"), model[:get_vector]("2."))
+cor(model[:get_vector]("times"), model[:get_vector]("2"))
+cor(model[:get_vector]("times"), model[:get_vector]("two"))
+
+cor(model[:get_vector]("child"), man + woman - model[:get_vector]("adult"))
+cor(model[:get_vector]("children"), man + woman - model[:get_vector]("adult"))
+
+cor(model[:get_vector]("berlin"), model[:get_vector]("france") - model[:get_vector]("paris") + model[:get_vector]("germany"))
+cor(model[:get_vector]("warsaw"), model[:get_vector]("france") - model[:get_vector]("paris") + model[:get_vector]("poland"))
+
+cor(model[:get_vector]("berlin"), model[:get_vector]("france") - model[:get_vector]("paris") .* model[:get_vector]("germany"))
+cor(model[:get_vector]("warsaw"), model[:get_vector]("france") - model[:get_vector]("paris") .* model[:get_vector]("poland"))
+
+cor(model[:get_vector]("event"), model[:get_vector]("occurrence"))
 
 # 
 # train own model
@@ -66,9 +90,13 @@ vocab = model[:wv][:vocab]
 indices = OrderedDict(sort(map(key -> key => vocab[key][:index], keys(vocab)), by=x->x[2]))
 counts = OrderedDict(sort(map(key -> key => vocab[key][:count], keys(vocab)), by=x->x[2], rev=true))
 
+r1 = Dict{String,Array{Float32,1}}()
+r1["DEBUG"] =  model[:wv][:word_vec]("DEBUG")
+r1["BundleEvent"] = model[:wv][:word_vec]("BundleEvent")
 
-DEBUG1 = model[:wv][:word_vec]("DEBUG")
-
+# 
+# re-train the model...
+# 
 model[:build_vocab](s2, update=true)
 model[:train](
     s2,
@@ -77,6 +105,9 @@ model[:train](
     # total_words=sum(map(length,sentences)),
     )
 
-DEBUG2 = model[:wv][:word_vec]("DEBUG")
+r2 = Dict{String,Array{Float32,1}}()
+r2["DEBUG"] =  model[:wv][:word_vec]("DEBUG")
+r2["BundleEvent"] = model[:wv][:word_vec]("BundleEvent")
 
-DEBUG1 - DEBUG2
+cor(r1["DEBUG"], r2["DEBUG"])
+cor(r1["BundleEvent"], r2["BundleEvent"])
