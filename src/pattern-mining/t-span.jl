@@ -61,7 +61,7 @@ function s_concatenation!(
     min_utililty::Float64,
     total_utility::Float64)
 
-    betaSet = Set{Vector{Int64}}()
+    # betaSet = Set{Vector{Int64}}()
     l = length(prefix)
 
     for range in moSet[prefix]
@@ -76,7 +76,7 @@ function s_concatenation!(
             if !haskey(moSet, beta)
                 moSet[beta] = []
             end
-            moBeta = range.start:t
+            moBeta::Intervall = range.start:t
             # M = { mo | if is mo subset of moBeta }
             # M = filter(x -> x != nothing, [
             #     (
@@ -103,11 +103,17 @@ function s_concatenation!(
                     end
                 end
                 if !isempty(N)
-                    moSet[beta] = filter(r->!(r in N), moSet[beta])
+                    filtered = Vector{Intervall}()
+                    for mo in moSet[beta]
+                        if !(mo in N)
+                            push!(filtered,mo)
+                        end
+                    end
+                    moSet[beta] = filtered
                     push!(moSet[beta], moBeta)
                 else
                     if all(r -> r.stop <= moBeta.start, moSet[beta]) # N ???
-                        union!(betaSet, Set([beta]))
+                        # push!(betaSet, beta) # union
                         push!(moSet[beta], moBeta)
                     
                         if support(moSet, beta) >= min_sup && ewu(total_utility, utilities, beta, moSet) >= min_utililty
