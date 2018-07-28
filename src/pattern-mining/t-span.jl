@@ -66,7 +66,7 @@ function s_concatenation!(
 
     for range in moSet[prefix]
         I = range.stop+1:min(range.start+mtd+1,length(sequence))
-        SES = sequence[I]
+        SES = @view sequence[I]
         for t in I
             # for simple event sequences there is only one event `e`
             # otherwise we need a loop for each event `e` (for all simultaniuos)
@@ -74,7 +74,7 @@ function s_concatenation!(
             beta[1:l] = prefix
             beta[end] = sequence[t] # event `e` of SES
             if !haskey(moSet, beta)
-                moSet[beta] = []
+                moSet[beta] = Int64[]
             end
             moBeta::Intervall = range.start:t
             # M = { mo | if is mo subset of moBeta }
@@ -131,17 +131,19 @@ function s_concatenation!(
                 
                             # TSpan condition...
                             # if IESC(α) ≥ min utility then
-                            t_span!(
-                                sequence,
-                                utilities,
-                                beta,
-                                moSet,
-                                hueSet,
-                                mtd,
-                                min_sup,
-                                min_utililty,
-                                total_utility,
-                                SES)
+                            if support(moSet, prefix) >= min_sup && iesc(total_utility, utilities, prefix, SES) >= min_utililty
+                                s_concatenation!(
+                                    sequence,
+                                    utilities,
+                                    beta,
+                                    moSet,
+                                    hueSet,
+                                    mtd,
+                                    min_sup,
+                                    min_utililty,
+                                    total_utility)
+                                    # SES)
+                            end
                         end
                     end
                 end
