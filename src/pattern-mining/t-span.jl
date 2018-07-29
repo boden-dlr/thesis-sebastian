@@ -59,7 +59,8 @@ function s_concatenation!(
     min_sup::Int64,
     min_utililty::Float64,
     total_utility::Float64,
-    max_repetition::Int64)
+    max_repetition::Int64,
+    max_gap::Int64)
 
     l = length(prefix)
 
@@ -67,6 +68,13 @@ function s_concatenation!(
         I = range.stop+1:min(range.start+mtd+1,length(sequence))
         # SES = @view sequence[I] # Set{Int64}()
         for t in I
+            moBeta::Intervall = range.start:t
+            
+            # gap constrained
+            if max_gap >= 0 && length(moBeta) > l+1+max_gap
+                break
+            end
+
             if supports[sequence[t]] < min_sup
                 continue
             end
@@ -91,7 +99,6 @@ function s_concatenation!(
                 moSet[beta] = Int64[]
             end
 
-            moBeta::Intervall = range.start:t
             # M = { mo | if is mo subset of moBeta }
             M = Vector{Intervall}()
             for mo in moSet[beta]
@@ -140,7 +147,8 @@ function s_concatenation!(
                                     min_sup,
                                     min_utililty,
                                     total_utility,
-                                    max_repetition)
+                                    max_repetition,
+                                    max_gap)
                             end
                         end
                     end
@@ -158,7 +166,8 @@ function min_t_span!(
     mtd::Int64 = 0,
     min_sup::Int64 = 1,
     min_utililty::Float64 = 0.0,
-    max_repetition::Int64 = -1;
+    max_repetition::Int64 = -1,
+    max_gap::Int64 = -1;
     prefixes::Union{Symbol,Vector{Int64}} = :all,
     verbose::Bool = false)
 
@@ -187,18 +196,19 @@ function min_t_span!(
     end
 
     for prefix in prefixes
-        if support(moSet, prefix) >= min_sup && iesc(tu, utilities, prefix, prefix) >= min_utililty
-            # @show support(moSet, prefix)
-            # @show iesc(tu, utilities, prefix, prefix)
+        if verbose
+            println()
+            @show prefix
+            info("sup:  ", support(moSet, prefix))
+            info("iesc: ", iesc(tu, utilities, prefix, prefix))
+            info("ewu:  ", ewu(tu, utilities, prefix, moSet))
+            info("ru:   ", relative_utility(tu, utilities, prefix))
+            info("u:    ", utility(utilities, prefix))
+            info("tu:   ", tu)
+        end
+        # if support(moSet, prefix) >= min_sup && iesc(tu, utilities, prefix, prefix) >= min_utililty
+        if support(moSet, prefix) >= min_sup && ewu(tu, utilities, prefix, moSet) >= min_utililty
             if verbose
-
-                println()
-                @show prefix
-                info("iesc: ", iesc(tu, utilities, prefix, prefix))
-                info("ewu:  ", ewu(tu, utilities, prefix, moSet))
-                info("ru:   ", relative_utility(tu, utilities, prefix))
-                info("u:    ", utility(utilities, prefix))
-
                 @time s_concatenation!(
                     sequence,
                     supports,
@@ -210,7 +220,8 @@ function min_t_span!(
                     min_sup,
                     min_utililty,
                     tu,
-                    max_repetition)
+                    max_repetition,
+                    max_gap)
             else
                 s_concatenation!(
                     sequence,
@@ -223,7 +234,8 @@ function min_t_span!(
                     min_sup,
                     min_utililty,
                     tu,
-                    max_repetition)
+                    max_repetition,
+                    max_gap)
             end
             
         end
@@ -239,10 +251,10 @@ end
 
 
 
-max_duration = 5
-min_support  = 100
+max_duration = 16
+min_support  = 1
 max_repetition = 1
-
+max_gap = 0
 
 #                A B C E D G E A B C F E E A B D 
 sequence = Int64[1,2,3,5,4,8,5,1,2,3,7,5,5,1,2,4]
@@ -254,31 +266,34 @@ k = maximum(sequence)
 # utilities = rand(k)
 # min_utililty = 0.2
 utilities = fill(1.0, k)
-min_utililty = 0.125
+min_utililty = 0.0
 
-data = readdlm("data/embedding/playground/2018-07-25_51750_assignments_and_reconstruction_error.csv")
+# data = readdlm("data/embedding/playground/2018-07-25_51750_assignments_and_reconstruction_error.csv")
+# min_utililty = 8.005383703975682e-5
+# min_utililty = 0.000038764
+# min_utililty = 0.00004945573
+# min_utililty = 0.00005      # max_duration:10
+# min_utililty = 0.00005308   # max_duration:20
+# min_utililty = 7.468059462914433e-5
 
-# data = readdlm("data/embedding/playground/2018-07-28_6073_assignments_and_reconstruction_error.csv")
+data = readdlm("data/embedding/playground/2018-07-28_6073_assignments_and_reconstruction_error.csv")
+min_utililty = 3.3399087787414806e-5
+
 sequence = map(n->convert(Int64,n), data[:,1])
-# utilities = map(n->convert(Float64,n), data[:,2])
-# max_utilitly = maximum(utilities)
-# utilities = map(u->(u/max_utilitly)^100, utilities)
 k = maximum(sequence)
 vertical = Index.invert(sequence)
 max_sup = maximum(map(length, values(vertical)))
+
 utilities = Vector{Float64}(k)
 for key in keys(vertical)
-    # utilities[key] = max_sup+1 - length(vertical[key])
-    utilities[key] = length(vertical[key])
+    utilities[key] = max_sup+1 - length(vertical[key])
+    # utilities[key] = length(vertical[key])
 end
-minimum(utilities), maximum(utilities)
-min_utililty = 8.005383703975682e-5
 
-min_utililty = 0.000038764
-min_utililty = 0.00004945573
-min_utililty = 0.00005      # max_duration:10
-min_utililty = 0.00005308   # max_duration:20
-min_utililty = 3.7340297314572164e-5
+# utilities = map(n->convert(Float64,n), data[:,2])
+# max_utilitly = maximum(utilities)
+# utilities = map(u->(u/max_utilitly)^100, utilities)
+
 
 # big rocks: 715, 
 # blacklist_51750 = [468, 493, 512, 528, 547, 565, 575, 584, 593, 603, 620, 629, 630, 631, 632, 643, 646, 674, 715, 717, 718, 721, 722, 728, 729, 731, 732, 735, 736, 770]
@@ -318,7 +333,8 @@ ts = Vector{Tuple{Vector{Int},Float64,Base.GC_Diff}}()
         max_duration,   # maximal time duration
         min_support,    # absolute minumum support
         min_utililty,   # min_utililty
-        max_repetition; # maximum repetitions for each event
+        max_repetition, # maximum repetitions for each event
+        max_gap;        # maximal gap
         verbose = true)
 end
 # secs = map(t -> t[2], ts)
