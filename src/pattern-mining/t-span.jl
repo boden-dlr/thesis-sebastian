@@ -1,7 +1,6 @@
 using LogClustering: Index
 
 
-
 function support(moSet, episode)
     length(moSet[episode])
 end
@@ -32,8 +31,7 @@ end
 
 # Episode Weighted Utility
 function ewu(total_utility, utilities, episode, moSet)
-    u = utility(utilities, episode)
-    u = u * length(moSet[episode]) / total_utility
+    (utility(utilities, episode) * length(moSet[episode])) / total_utility
 end
 
 # IESC (Improved estimation of EWU for S-Concatenation)
@@ -124,7 +122,7 @@ function s_concatenation!(
                     
                         # for beta in betaSet ...
                         if support(moSet, beta) >= min_sup && ewu(total_utility, utilities, beta, moSet) >= min_utililty
-                            if utility(utilities, beta) >= min_utililty
+                            if relative_utility(total_utility, utilities, beta) >= min_utililty
                                 hueSet[beta] = moSet[beta]
                             end
                 
@@ -193,7 +191,14 @@ function min_t_span!(
             # @show support(moSet, prefix)
             # @show iesc(tu, utilities, prefix, prefix)
             if verbose
+
+                println()
                 @show prefix
+                info("iesc: ", iesc(tu, utilities, prefix, prefix))
+                info("ewu:  ", ewu(tu, utilities, prefix, moSet))
+                info("ru:   ", relative_utility(tu, utilities, prefix))
+                info("u:    ", utility(utilities, prefix))
+
                 @time s_concatenation!(
                     sequence,
                     supports,
@@ -234,15 +239,9 @@ end
 
 
 
-max_duration = 16
-min_support  = 1
-min_utililty = 0.000038764
-min_utililty = 0.00004945573
-min_utililty = 0.00005      # max_duration:10
-min_utililty = 0.00005308   # max_duration:20
-min_utililty = 0.0
-# min_utililty = 0.00006      # max_duration:20
-max_repetition = -1
+max_duration = 5
+min_support  = 100
+max_repetition = 1
 
 
 #                A B C E D G E A B C F E E A B D 
@@ -253,14 +252,33 @@ sequence = Int64[1,2,3,5,4,8,5,1,2,3,7,5,5,1,2,4]
 # utilities = Float64[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8]
 k = maximum(sequence)
 # utilities = rand(k)
+# min_utililty = 0.2
 utilities = fill(1.0, k)
+min_utililty = 0.125
 
-# data = readdlm("data/embedding/playground/2018-07-25_51750_assignments_and_reconstruction_error.csv")
-# # data = readdlm("data/embedding/playground/2018-07-28_6073_assignments_and_reconstruction_error.csv")
-# sequence = map(n->convert(Int64,n), data[:,1])
+data = readdlm("data/embedding/playground/2018-07-25_51750_assignments_and_reconstruction_error.csv")
+
+# data = readdlm("data/embedding/playground/2018-07-28_6073_assignments_and_reconstruction_error.csv")
+sequence = map(n->convert(Int64,n), data[:,1])
 # utilities = map(n->convert(Float64,n), data[:,2])
 # max_utilitly = maximum(utilities)
 # utilities = map(u->(u/max_utilitly)^100, utilities)
+k = maximum(sequence)
+vertical = Index.invert(sequence)
+max_sup = maximum(map(length, values(vertical)))
+utilities = Vector{Float64}(k)
+for key in keys(vertical)
+    # utilities[key] = max_sup+1 - length(vertical[key])
+    utilities[key] = length(vertical[key])
+end
+minimum(utilities), maximum(utilities)
+min_utililty = 8.005383703975682e-5
+
+min_utililty = 0.000038764
+min_utililty = 0.00004945573
+min_utililty = 0.00005      # max_duration:10
+min_utililty = 0.00005308   # max_duration:20
+min_utililty = 3.7340297314572164e-5
 
 # big rocks: 715, 
 # blacklist_51750 = [468, 493, 512, 528, 547, 565, 575, 584, 593, 603, 620, 629, 630, 631, 632, 643, 646, 674, 715, 717, 718, 721, 722, 728, 729, 731, 732, 735, 736, 770]
@@ -319,13 +337,13 @@ end
 #sort(collect(moSet), by=kv->length(kv[1]), rev=false)
 sort(collect(hueSet), by=kv->(length(kv[2]),length(kv[1])), rev=false)
 
+# hueSet[[1,2,5]]         # sup:2
+# assert(length(hueSet[[1, 2, 5]]) == 2)
+
+# hueSet[[5,5]]           # sup:3
+# assert(length(hueSet[[5, 5]]) == 3)
+
+# hueSet[[1, 2, 3, 1, 2]] # sup:1 -overlapping candidate
+# assert(length(hueSet[[1, 2, 3, 1, 2]]) == 1)
+
 hueSet
-
-hueSet[[1,2,5]]         # sup:2
-assert(length(hueSet[[1, 2, 5]]) == 2)
-
-hueSet[[5,5]]           # sup:3
-assert(length(hueSet[[5, 5]]) == 3)
-
-hueSet[[1, 2, 3, 1, 2]] # sup:1 -overlapping candidate
-assert(length(hueSet[[1, 2, 3, 1, 2]]) == 1)
