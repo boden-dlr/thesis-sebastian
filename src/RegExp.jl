@@ -32,7 +32,7 @@ function infer(set::Array{Array{String,1},1};
     placeholder         = "\\s",
     quantifier_optional = "*?",
     quantifier_required = "+?",
-    replacements::Union{Void,Dict{String,String}} = nothing)::Regex
+    replacements::Union{Nothing,Dict{String,String}} = nothing)::Regex
 
     set = deepcopy(set)
 

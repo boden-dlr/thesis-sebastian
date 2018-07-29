@@ -1,6 +1,6 @@
 module Sort
 
-function Base.isless{N<:Number}(as::Array{N,1}, bs::Array{N,1})
+function Base.isless(as::Array{N,1}, bs::Array{N,1}) where {N <: Number}
     A = length(as)
     B = length(bs)
     for i = 1:min(A,B)

@@ -25,8 +25,8 @@ function isoverlapping(a::UnitRange{Int64}, b::UnitRange{Int64})
     result
 end
 
-function filter_overlapping_ranges!{K}(d::Dict{K,UnitRange{Int64}};
-    strategy::Symbol = :keep_greater, strategy_eq = :keep_both)
+function filter_overlapping_ranges!(d::Dict{K,UnitRange{Int64}};
+    strategy::Symbol = :keep_greater, strategy_eq = :keep_both) where {K}
 
     assert(strategy in [:keep_lesser, :keep_greater, :keep_none])
     assert(strategy_eq in [:keep_both, :keep_none])

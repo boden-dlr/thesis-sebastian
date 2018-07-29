@@ -12,7 +12,7 @@ using DataStructures: OrderedDict, Trie
 # occs -> store
 # deüth frist vs. breath first vs. parallel combination
 
-function grow{N<:Number}(sequence::Array{N,1}, vertical, primer, min_sup; overlapping = false)
+function grow(sequence::Array{N,1}, vertical, primer, min_sup; overlapping = false) where {N<:Number}
     #TODO: inter vs intra overlapping...
 
     extended = Dict{Array{N,1},Array{Tuple{Int64,Int64},1}}()
@@ -113,15 +113,15 @@ function avg_utility(utilities, total_utility, total_length, episode)
 end
 
 
-function grow_depth_first!{N<:Number}(
+function grow_depth_first!(
     db::OrderedDict{Vector{N},Vector{Vector{N}}},
     extend::Vector{Vector{N}},
     sequence::Vector{N},
     len::Int64,
     vertical::Dict{N,Vector{N}},
     alphabet::Vector{N}; # TODO: CMAP?
-    utility_measure::Union{Void,Symbol} = :external, # :external, local, average
-    utilities::Union{Void,Dict{Int64,Int64},Vector{Int64}} = nothing,
+    utility_measure::Union{Nothing,Symbol} = :external, # :external, local, average
+    utilities::Union{Nothing,Dict{Int64,Int64},Vector{Int64}} = nothing,
     total_utility = len,
     min_utility = 0.0,
     min_sup     = 1,
@@ -134,7 +134,7 @@ function grow_depth_first!{N<:Number}(
     # set_keys    = Set{Int64}[], # TODO: replace with sorted arrays? What performs better?
     sorted_keys = Vector{Int64}[],
     # positions   = Dict{Int64,Int64}(), # TODO: replace with an array (assignments)
-    depth       = 0) 
+    depth       = 0) where {N<:Number}
 
     # shared_db = SharedVector{Tuple{Vector{N},Tuple{Int64,Vector{Tuple{Int64,Int64}},Vector{Vector{N}}}}}(P*A)
 
@@ -307,7 +307,7 @@ function grow_depth_first!{N<:Number}(
 end
 
 
-function mine_recurring{N<:Number}(sequence::Array{N,1}, min_sup::Int64 = 1)
+function mine_recurring(sequence::Array{N,1}, min_sup::Int64 = 1) where {N<:Number}
 
     vertical = Index.invert(sequence)
     primer = Index.pairs(sequence, gap=0)
@@ -322,7 +322,7 @@ function mine_recurring{N<:Number}(sequence::Array{N,1}, min_sup::Int64 = 1)
 end
 
 
-function generate_lookuptable(vertical::Associative{Int64,Vector{Int64}}, n::Int64)
+function generate_lookuptable(vertical::Dict{Int64,Vector{Int64}}, n::Int64)
 
     m = length(vertical)
     A = sort(collect(keys(vertical)))

@@ -68,7 +68,7 @@ end
 
 
 function binary(term::String, document::Document;
-    terms::Union{Terms,Void} = nothing)::Int64
+    terms::Union{Terms,Nothing} = nothing)::Int64
     if terms == nothing
         warn(warnings[:terms])
         terms = NLP.terms(document)
@@ -78,7 +78,7 @@ end
 
 
 function count_terms(document::Document;
-    terms::Union{Terms,Void} = nothing)::TermCount
+    terms::Union{Terms,Nothing} = nothing)::TermCount
 
     if terms == nothing
         warn(warnings[:terms])
@@ -102,8 +102,8 @@ end
 
 
 function count_term(term::String, document::Document;
-    terms::Union{Terms,Void} = nothing,
-    counts::Union{TermCount,Void} = nothing)::Int64
+    terms::Union{Terms,Nothing} = nothing,
+    counts::Union{TermCount,Nothing} = nothing)::Int64
 
     if counts == nothing
         warn(warnings[:counts])
@@ -175,8 +175,8 @@ end
 """
 function term_frequency(term::String, document::Document;
     mode::Symbol = :double_normalized,
-    terms::Union{Terms,Void} = nothing,
-    counts::Union{TermCount,Void} = nothing,
+    terms::Union{Terms,Nothing} = nothing,
+    counts::Union{TermCount,Nothing} = nothing,
     K::Float64 = 0.5)
 
     if terms == nothing
@@ -206,8 +206,8 @@ end
 
 function naive_term_frequency(term::String, document::Document;
     normalize::Bool = true,
-    wc::Union{TermCount, Void} = nothing,
-    max::Union{Float64, Void} = nothing)
+    wc::Union{TermCount, Nothing} = nothing,
+    max::Union{Float64, Nothing} = nothing)
 
     wc == nothing ? wc = count_words(document) : wc
     result::Float64 = wc[term]
@@ -269,7 +269,7 @@ function inverse_document_frequency(
     n_term::Integer;
     mode::Symbol = :idf,
     divzero::Float64 = 0.0,
-    max::Union{Integer,Void} = N)
+    max::Union{Integer,Nothing} = N)
 
     if mode == :unary
         return 1.0
@@ -295,7 +295,7 @@ end
 function naive_inverse_document_frequency(term::String, corpus::Corpus;
     mode::Symbol = :idf,
     divzero::Float64 = 0.0,
-    max::Union{Integer,Void} = nothing)
+    max::Union{Integer,Nothing} = nothing)
     warn("""Using the naive idf implementation is not recommended.
     Consider using `NLP.inverse_document_frequency` by providing precalculated arguments.""")
 
@@ -317,7 +317,7 @@ end
 
 
 function tokenize(lines::Array{String};
-    limit::Nullable{Int64} = Nullable{Int64}(),
+    limit::Union{Nothing,Int64} = nothing,
     splitby::Regex = r"\s+",
     replacements::Array{Tuple{Regex,String}} = Array{Tuple{Regex,String}}(0),
     lower::Bool = false)
@@ -353,7 +353,7 @@ function tokenize(lines::Array{String};
     lines_reduced = filter(line -> length(line) != 0, lines_splitted)
 
     # @show length(lines_splitted), typeof(lines_splitted)
-    if isnull(limit)
+    if limit == nothing
         lines_limited = lines_reduced
     else
         lines_limited = lines_reduced[1:limit.value]
@@ -378,7 +378,7 @@ end
 function split_and_keep_splitter(str::S, pattern::Regex;
     keep_empty=false) where S<:AbstractString
 
-    list::Union{Void,Array{S}} = nothing
+    list::Union{Nothing,Array{S}} = nothing
     
     ms = matchall(pattern, str)
     if isempty(ms)
