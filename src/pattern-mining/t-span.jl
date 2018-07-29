@@ -83,14 +83,14 @@ function s_concatenation!(
             beta[1:l] = prefix
             beta[end] = sequence[t] # for e in SES_t
 
-            if max_repetition > 0
+            if max_repetition >= 0
                 c = 0
                 for e in beta
                     if e == sequence[t]
                         c += 1
                     end
                 end
-                if c > max_repetition
+                if c-1 > max_repetition
                     break
                 end
             end
@@ -171,6 +171,10 @@ function min_t_span!(
     prefixes::Union{Symbol,Vector{Int64}} = :all,
     verbose::Bool = false)
 
+    if max_gap > mtd
+        warn("max_gap > max_time_duration has no effect.")
+    end
+
     vertical::Dict{Int,Vector{Int64}} = Index.invert(sequence)
     k = maximum(keys(vertical))
     supports::Vector{Int64} = fill(0,k)
@@ -250,10 +254,9 @@ function min_t_span!(
 end
 
 
-
-max_duration = 16
+max_duration = 0
 min_support  = 1
-max_repetition = 1
+max_repetition = 0
 max_gap = 0
 
 #                A B C E D G E A B C F E E A B D 
@@ -276,10 +279,11 @@ min_utililty = 0.0
 # min_utililty = 0.00005308   # max_duration:20
 # min_utililty = 7.468059462914433e-5
 
-data = readdlm("data/embedding/playground/2018-07-28_6073_assignments_and_reconstruction_error.csv")
-min_utililty = 3.3399087787414806e-5
+# data = readdlm("data/embedding/playground/2018-07-28_6073_assignments_and_reconstruction_error.csv")
+# min_utililty = 3.3399087787414806e-5
+# min_utililty = 0.0
 
-sequence = map(n->convert(Int64,n), data[:,1])
+# sequence = map(n->convert(Int64,n), data[:,1])
 k = maximum(sequence)
 vertical = Index.invert(sequence)
 max_sup = maximum(map(length, values(vertical)))
