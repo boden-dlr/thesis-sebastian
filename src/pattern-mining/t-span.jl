@@ -52,6 +52,7 @@ Intervall = UnitRange{Int64}
 
 function s_concatenation!(
     sequence::Vector{Int64},
+    supports::Vector{Int64},
     utilities::Vector{Float64},
     prefix::Vector{Int64},
     moSet::Dict{Vector{Int64},Vector{Intervall}},
@@ -62,27 +63,30 @@ function s_concatenation!(
     total_utility::Float64,
     max_repetition::Int64)
 
-    # betaSet = Set{Vector{Int64}}()
     l = length(prefix)
 
     for range in moSet[prefix]
         I = range.stop+1:min(range.start+mtd+1,length(sequence))
-        SES = @view sequence[I] # Set{Int64}()
+        # SES = @view sequence[I] # Set{Int64}()
         for t in I
-            # for simple event sequences there is only one event `e`
-            # otherwise we need a loop for each event `e` (for all simultaniuos)
+            if supports[sequence[t]] < min_sup
+                continue
+            end
+
             beta = Vector{Int64}(l+1)
             beta[1:l] = prefix
-            beta[end] = sequence[t] # event `e` of SES
+            beta[end] = sequence[t] # for e in SES_t
 
-            c = 0
-            for e in beta
-                if e == sequence[t]
-                    c += 1
+            if max_repetition > 0
+                c = 0
+                for e in beta
+                    if e == sequence[t]
+                        c += 1
+                    end
                 end
-            end
-            if c > max_repetition
-                break
+                if c > max_repetition
+                    break
+                end
             end
 
             if !haskey(moSet, beta)
@@ -91,15 +95,15 @@ function s_concatenation!(
 
             moBeta::Intervall = range.start:t
             # M = { mo | if is mo subset of moBeta }
-            M = Vector{Vector{Int64}}()
+            M = Vector{Intervall}()
             for mo in moSet[beta]
-                if mo.start >= moBeta.start && mo.stop <= moBeta.stop
+                if mo.start >= moBeta.start && mo.stop <= moBeta.stop # most time is spend here...
                     push!(M,mo)
                 end
             end
             if isempty(M)
                 # N = { mo | if moBeta is proper subset of mo }
-                N = Vector{Vector{Int64}}()
+                N = Vector{Intervall}()
                 for mo in moSet[beta]
                     if moBeta.start > mo.start && moBeta.stop <= mo.stop
                         push!(N,mo)
@@ -115,29 +119,21 @@ function s_concatenation!(
                     moSet[beta] = filtered
                     push!(moSet[beta], moBeta)
                 else
-                    if all(r -> r.stop <= moBeta.start, moSet[beta]) # N ???
-                        # push!(betaSet, beta) # union
+                    if all(r -> r.stop <= moBeta.start, moSet[beta]) # NOTE: strange that M,N generates false positives
                         push!(moSet[beta], moBeta)
                     
-                        # for beta in betaSet ...                        
+                        # for beta in betaSet ...
                         if support(moSet, beta) >= min_sup && ewu(total_utility, utilities, beta, moSet) >= min_utililty
                             if utility(utilities, beta) >= min_utililty
-                            # if relative_utility(total_utility, utilities, beta) >= min_utililty
-                                # u = utility(utilities, beta)
-                                # ru = relative_utility(total_utility, utilities, beta)
-                                # println(u)
-                                # println(ru)
-                                # println(min_utililty)
-                                # println((u >= min_utililty, ru >= min_utililty))
-                                # println()
-                                hueSet[beta] = moSet[beta] # sort(moSet[beta], by=r->r.start)
+                                hueSet[beta] = moSet[beta]
                             end
                 
                             # TSpan condition...
-                            # if IESC(α) ≥ min utility then
-                            if support(moSet, prefix) >= min_sup && iesc(total_utility, utilities, prefix, SES) >= min_utililty
+                            # if IESC(α, SES) ≥ min utility then, ...
+                            if support(moSet, prefix) >= min_sup && iesc(total_utility, utilities, prefix, Set{Int64}(sequence[I])) >= min_utililty
                                 s_concatenation!(
                                     sequence,
+                                    supports,
                                     utilities,
                                     beta,
                                     moSet,
@@ -157,51 +153,122 @@ function s_concatenation!(
 end
 
 
-function t_span!(
+function min_t_span!(
     sequence::Vector{Int64},
     utilities::Vector{Float64},
-    prefix::Vector{Int64},
-    moSet::Dict{Vector{Int64},Vector{Intervall}},
     hueSet::Dict{Vector{Int64},Vector{Intervall}}, # result set
-    mtd::Int64,
-    min_sup::Int64,
-    min_utililty::Float64,
-    total_utility::Float64,
-    max_repetition::Int64,
-    SES::Vector{Int64})
+    mtd::Int64 = 0,
+    min_sup::Int64 = 1,
+    min_utililty::Float64 = 0.0,
+    max_repetition::Int64 = -1;
+    prefixes::Union{Symbol,Vector{Int64}} = :all,
+    verbose::Bool = false)
 
-    if support(moSet, prefix) >= min_sup && iesc(total_utility, utilities, prefix, SES) >= min_utililty
-        # @show support(moSet, prefix)
-        # @show iesc(total_utility, utilities, prefix, SES)
-        s_concatenation!(
-            sequence,
-            utilities,
-            prefix,
-            moSet,
-            hueSet,
-            mtd,
-            min_sup,
-            min_utililty,
-            total_utility,
-            max_repetition)
+    vertical::Dict{Int,Vector{Int64}} = Index.invert(sequence)
+    k = maximum(keys(vertical))
+    supports::Vector{Int64} = fill(0,k)
+    for (k,v) in vertical
+        supports[k] = length(v)
     end
+    vertical = filter((k,v)->length(v) >= min_support, vertical)
+    moSet::Dict{Vector{Int64},Vector{Intervall}} = Dict(map(kv -> [kv[1]] => map(v -> v:v, kv[2]), collect(vertical)))
+    # hueSet::Dict{Vector{Int64},Vector{Intervall}} = Dict{Vector{Int64},Vector{Intervall}}()
     
+    tu = total_utility(sequence, utilities)
+
+    # ru = tu / length(sequence)
+    # ru = (ru / length(sequence))^2.5
+    # utilitly_correction = length(sequence) / (min(max_duration+1, length(sequence)))
+    # min_utililty = 0.6
+
+    if prefixes == :all
+        prefixes = deepcopy(sort(collect(keys(moSet)), by=x->x[1]))
+        if verbose
+            @show prefixes
+        end
+    end
+
+    for prefix in prefixes
+        if support(moSet, prefix) >= min_sup && iesc(tu, utilities, prefix, prefix) >= min_utililty
+            # @show support(moSet, prefix)
+            # @show iesc(tu, utilities, prefix, prefix)
+            if verbose
+                @show prefix
+                @time s_concatenation!(
+                    sequence,
+                    supports,
+                    utilities,
+                    prefix,
+                    moSet,
+                    hueSet,
+                    mtd,
+                    min_sup,
+                    min_utililty,
+                    tu,
+                    max_repetition)
+            else
+                s_concatenation!(
+                    sequence,
+                    supports,
+                    utilities,
+                    prefix,
+                    moSet,
+                    hueSet,
+                    mtd,
+                    min_sup,
+                    min_utililty,
+                    tu,
+                    max_repetition)
+            end
+            
+        end
+    end
+
+    if verbose
+        @show length(moSet)
+        @show length(hueSet)
+    end
+
+    hueSet
 end
+
+
+
+max_duration = 16
+min_support  = 1
+min_utililty = 0.000038764
+min_utililty = 0.00004945573
+min_utililty = 0.00005      # max_duration:10
+min_utililty = 0.00005308   # max_duration:20
+min_utililty = 0.0
+# min_utililty = 0.00006      # max_duration:20
+max_repetition = -1
+
 
 #                A B C E D G E A B C F E E A B D 
 sequence = Int64[1,2,3,5,4,8,5,1,2,3,7,5,5,1,2,4]
 #                0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1
 #                1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6
-# utilities = Float64[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8]
-# utilities = rand(maximum(sequence))
-utilities = fill(1.0, maximum(sequence))
 
-data = readdlm("data/embedding/playground/2018-07-25_51750_assignments_and_reconstruction_error.csv")
-# data = readdlm("data/embedding/playground/2018-07-28_6073_assignments_and_reconstruction_error.csv")
-sequence = map(n->convert(Int64,n), data[:,1])
-utilities = map(n->convert(Float64,n), data[:,2])
-max_utilitly = maximum(utilities)
-utilities = map(u->(u/max_utilitly)^100, utilities)
+# utilities = Float64[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8]
+k = maximum(sequence)
+# utilities = rand(k)
+utilities = fill(1.0, k)
+
+# data = readdlm("data/embedding/playground/2018-07-25_51750_assignments_and_reconstruction_error.csv")
+# # data = readdlm("data/embedding/playground/2018-07-28_6073_assignments_and_reconstruction_error.csv")
+# sequence = map(n->convert(Int64,n), data[:,1])
+# utilities = map(n->convert(Float64,n), data[:,2])
+# max_utilitly = maximum(utilities)
+# utilities = map(u->(u/max_utilitly)^100, utilities)
+
+# big rocks: 715, 
+# blacklist_51750 = [468, 493, 512, 528, 547, 565, 575, 584, 593, 603, 620, 629, 630, 631, 632, 643, 646, 674, 715, 717, 718, 721, 722, 728, 729, 731, 732, 735, 736, 770]
+# greylist_51750 = [616, 638, 691, 714, 739, 740, 743, 746, 749, 769, 773, 776, 786, 787, 800, 812, 815]
+# for event in sort(collect(keys(vertical)))
+#     println(event, "\t", event in blacklist_51750, "\t", event in greylist_51750, "\t", length(vertical[event]))
+# end
+# blacklist_51750, greylist_51750 = [], []
 
 # event = 702
 # occs = Vector{UnitRange{Int64}}()
@@ -218,70 +285,47 @@ utilities = map(u->(u/max_utilitly)^100, utilities)
 # utilities = rand(maximum(sequence))
 # utilities = fill(1.0, maximum(sequence))
 
-
-vertical = Index.invert(sequence)
-moSet = Dict(map(kv -> [kv[1]] => map(v -> v:v, kv[2]), collect(vertical)))
 hueSet = Dict{Vector{Int64},Vector{Intervall}}()
-max_duration = 2
-min_support  = 1
-min_utililty = 0.000038764
-min_utililty = 0.00004945573
-tu = total_utility(sequence, utilities)
-max_repetition = 2
-
-# ru = tu / length(sequence)
-# ru = (ru / length(sequence))^2.5
-utilitly_correction = length(sequence) / (min(max_duration+1, length(sequence)))
-# min_utililty = 0.6
-
-blacklist_51750 = [468, 493, 512, 528, 547, 565, 575, 584, 593, 603, 620, 629, 630, 631, 632, 643, 646, 674, 715, 717, 718, 721, 722, 728, 729, 731, 732, 735, 736, 770]
-candidate_blacklist = [616, 638, 739, 746, 749, 769, 773, 776]
-for event in sort(collect(keys(vertical)))
-    println(event, "\t", event in blacklist_51750, "\t", event in candidate_blacklist, "\t", length(vertical[event]))
-end
 
 using ProfileView
 
 Profile.clear()
 ts = Vector{Tuple{Vector{Int},Float64,Base.GC_Diff}}()
-@profile for prefix in sort(collect(keys(moSet)), by=x->x[1])
-    @show prefix
-    if prefix[1] in blacklist_51750
-    t = @timed 1+1
-    else
-    t = @timed t_span!(
-        sequence,     # ES - event sequence
-        utilities,    #
-        prefix,       # alpha
-        moSet,        # moSet
-        hueSet,       # results
-        max_duration, # maximal time duration
-        min_support,  # absolute minumum support
-        min_utililty, # min_utililty
-        tu,           # total_utility
-        max_repetition,
-        prefix)       # initial SES == prefix
-    end
-    push!(ts, (prefix,t[2],t[5]))
+@show "total"
+@profile begin    
+    @time min_t_span!(
+        sequence,       # ES - event sequence
+        utilities,      # external utilities per event
+        hueSet,         # results
+        max_duration,   # maximal time duration
+        min_support,    # absolute minumum support
+        min_utililty,   # min_utililty
+        max_repetition; # maximum repetitions for each event
+        verbose = true)
 end
-ProfileView.view()
-#sort(collect(moSet), by=kv->length(kv[1]), rev=false)
-sort(collect(hueSet), by=kv->(length(kv[1]),length(kv[2])), rev=false)
+# secs = map(t -> t[2], ts)
+# @show indmax(secs)
+# @show minimum(secs)
+# @show median(secs)
+# @show mean(secs)
+# @show maximum(secs)
+# @show sum(secs)
 
-hueSet
-moSet
-
-# hueSet[[1,2,5]] # sup:2
-# hueSet[[5,5]]   # sup:3
-
-secs = map(t -> t[2], ts)
-minimum(secs)
-median(secs)
-mean(secs)
-maximum(secs)
-
-indmax(secs)
-
+# ProfileView.view()
 # while true
 #     sleep(5)
 # end
+
+#sort(collect(moSet), by=kv->length(kv[1]), rev=false)
+sort(collect(hueSet), by=kv->(length(kv[2]),length(kv[1])), rev=false)
+
+hueSet
+
+hueSet[[1,2,5]]         # sup:2
+assert(length(hueSet[[1, 2, 5]]) == 2)
+
+hueSet[[5,5]]           # sup:3
+assert(length(hueSet[[5, 5]]) == 3)
+
+hueSet[[1, 2, 3, 1, 2]] # sup:1 -overlapping candidate
+assert(length(hueSet[[1, 2, 3, 1, 2]]) == 1)
