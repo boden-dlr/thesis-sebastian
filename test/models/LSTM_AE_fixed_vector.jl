@@ -29,12 +29,20 @@ one_hot_sequence = map(e -> onehot(e, events), sequence)
 
 N = length(events)
 max_seqlen = 50
-mini_batch = 5
+mini_batch = 20
 hidden_state = 100
-epochs = 10
+epochs = 250
 
 Xs = collect(partition(batchseq(chunk(one_hot_sequence[1:end-1], mini_batch), stop), max_seqlen))
 Ys = collect(partition(batchseq(chunk(one_hot_sequence[2:end], mini_batch), stop), max_seqlen))
+
+# 
+# load
+#
+
+# @load "data/models/2018-08-02_model_LSTM_1053-2_LSTM_2-128_Dense_128-1053_softmax.bson" m
+# @load "data/models/2018-08-02_weights_LSTM_1053-2_LSTM_2-128_Dense_128-1053_softmax.bson" W
+# Flux.loadparams!(m, W)
 
 m = Chain(
     LSTM(N, hidden_state),  # unrolled time window?!
@@ -95,18 +103,12 @@ Flux.reset!(m)
 W = Tracker.data.(params(m))
 @save string("data/models/", Dates.today(), "_", name, "_weights.bson") W
 
-# 
-# load
-#
-
-# @load "data/models/2018-08-02_model_LSTM_1053-2_LSTM_2-128_Dense_128-1053_softmax.bson" m
-# @load "data/models/2018-08-02_weights_LSTM_1053-2_LSTM_2-128_Dense_128-1053_softmax.bson" W
-# Flux.loadparams!(m, W)
-
 
 # 
 # Sampling
 # 
+Flux.testmode!(m)
+m = cpu(m)
 
 function sample(m, alphabet, len; temp = 1)
     Flux.reset!(m)
@@ -125,8 +127,6 @@ sample(m, events, 100) |> println
 # 
 # predict next...
 # 
-
-m = cpu(m)
 
 test_sequence = [5,1,2,3,7]
 test_6073_60_70 = [53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63]
