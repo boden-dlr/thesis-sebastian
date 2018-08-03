@@ -29,8 +29,8 @@ one_hot_sequence = map(e -> onehot(e, events), sequence)
 
 N = length(events)
 max_seqlen = 50
-mini_batch = 20
-hidden_state = 100
+mini_batch = 25
+hidden_state = 200
 epochs = 250
 
 Xs = collect(partition(batchseq(chunk(one_hot_sequence[1:end-1], mini_batch), stop), max_seqlen))
@@ -46,7 +46,7 @@ Ys = collect(partition(batchseq(chunk(one_hot_sequence[2:end], mini_batch), stop
 
 m = Chain(
     LSTM(N, hidden_state),  # unrolled time window?!
-    Dropout(0.25),
+    Dropout(0.66),
     LSTM(hidden_state, 128),
     Dense(128, N),
     softmax)
@@ -81,14 +81,19 @@ end
 function shortname!(model)
     name = string(model)
     name = replace(name, r"[\s]+", "")
-    name = replace(name, r"[\{\}]|Chain|NNlib|Recur|Base|Float64|Int64|true|false", "")
+    name = replace(name, r"[\{\}]|Flux|Chain|NNlib|Recur|Base|Float64|Int64", "")
+    name = replace(name, r"true", "t")
+    name = replace(name, r"false", "f")
     name = replace(name, r"LSTMCell", "LSTM")
+    name = replace(name, r"Dropout", "Dout")
+    name = replace(name, r"Dense", "D")
+    name = replace(name, r"sigmoid", "σ")
     name = replace(name, r"\)\,", "_")
     name = replace(name, r"\,", "-")
     name = replace(name, r"\-\.", "_")
     name = replace(name, r"[\(\)\,\.\_]+", "_")
     name = replace(name, r"^\_|\_$", "")
-    name 
+    name = string(name, "_e_", epochs, "_l_", max_seqlen, "_mb_", mini_batch)
 end
 
 name = shortname!(m)
