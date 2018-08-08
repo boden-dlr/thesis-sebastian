@@ -333,7 +333,12 @@ for epsilon in [0.001, 0.01, 0.03, 0.05, 0.1]
 info("epsilon: $epsilon")
 # epsilon = 0.03
 #algorithm = "auto" # "ball_tree", "kd_tree"
-sk_dbscan = SkCluster.DBSCAN(eps=epsilon, min_samples=min_neighbors_dbscan, n_jobs=-1)
+sk_dbscan = SkCluster.DBSCAN(
+    eps=epsilon,
+    min_samples=min_neighbors_dbscan,
+    algorithm = "ball_tree", # create spheres
+    n_jobs=-1)
+
 db = sk_dbscan[:fit](embeddings)
 prediction = db[:labels_]
 
