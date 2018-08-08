@@ -31,11 +31,11 @@ sequence = data
 
 utility_measure = nothing #:external :local :average
 min_utility = 0.000025 # external:0.000025, local:0.999, :average=0.1-0.05
-min_sup     = 3
+min_sup     = 1
 unique      = false
 unique_n    = 1
 similar     = true
-overlapping = false
+overlapping = true
 gap         = -1
 set         = :all
 N = Int64
