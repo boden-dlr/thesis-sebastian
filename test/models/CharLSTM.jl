@@ -96,7 +96,7 @@ m = Chain(
     softmax) |> gpu
 
 # arch = string(m[1].join, ", ", string(m[2:end]))
-arch = string(filter(!isempty, split(string(m[1].join, string(m[2:end])), r"\s+|[\,\(\)\{\}]"))...)
+arch = string(filter(!isempty, split(string(m[1], string(m[2:end])), r"\s+|[\,\(\)\{\}]"))...)
 
 function loss(xs, ys)
     # @show length(xs), length(xs[1])
