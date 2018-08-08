@@ -8,41 +8,37 @@ using BSON: @save, @load
 
 # cd(@__DIR__)
 
-# isfile("input.txt") ||
-#   download("http://cs.stanford.edu/people/karpathy/char-rnn/shakespeare_input.txt",
-#            "input.txt")
+isfile("input.txt") ||
+  download("http://cs.stanford.edu/people/karpathy/char-rnn/shakespeare_input.txt",
+           "input.txt")
 
-# text = collect(readstring("input.txt"))
-# alphabet = [unique(text)..., '¿']
-# text = map(ch -> onehot(ch, alphabet), text)
-# stop = onehot('¿', alphabet)
+text = collect(readstring("input.txt"))
+events = [unique(text)..., '¿']
+one_hot_sequence = map(ch -> onehot(ch, events), text)
+stop = onehot('¿', events)
 
 data = readdlm("data/embedding/playground/2018-07-28_6073_assignments_and_reconstruction_error.csv")
 
-# sequence = [1,2,3,5,4,8,5,1,2,3,7,5,5,1,2,4]
-sequence = map(Int64, data[:,1])
-events = unique(sequence)
-push!(events, -1)
-stop = onehot(-1, events)
-one_hot_sequence = map(e -> onehot(e, events), sequence)
+# # sequence = [1,2,3,5,4,8,5,1,2,3,7,5,5,1,2,4]
+# sequence = map(Int64, data[:,1])
+# events = unique(sequence) # alphabet
+# push!(events, -1)
+# stop = onehot(-1, events) # alphabet encoded stop-word
+# one_hot_sequence = map(e -> onehot(e, events), sequence)
 
 
 N = length(events)
 max_seqlen = 50
 mini_batch = 25
 hidden_state = 200
-epochs = 250
+epochs = 1
 
 Xs = collect(partition(batchseq(chunk(one_hot_sequence[1:end-1], mini_batch), stop), max_seqlen))
 Ys = collect(partition(batchseq(chunk(one_hot_sequence[2:end], mini_batch), stop), max_seqlen))
 
 # 
-# load
+# define or load
 #
-
-# @load "data/models/2018-08-02_model_LSTM_1053-2_LSTM_2-128_Dense_128-1053_softmax.bson" m
-# @load "data/models/2018-08-02_weights_LSTM_1053-2_LSTM_2-128_Dense_128-1053_softmax.bson" W
-# Flux.loadparams!(m, W)
 
 m = Chain(
     LSTM(N, hidden_state),  # unrolled time window?!
@@ -50,6 +46,10 @@ m = Chain(
     LSTM(hidden_state, 128),
     Dense(128, N),
     softmax)
+
+# @load "data/models/2018-08-03_LSTM_1053-200_Dout_0_66-t_LSTM_200-128_D_128-1053_softmax_e_250_l_50_mb_25_model.bson" m
+# @load "data/models/2018-08-03_LSTM_1053-200_Dout_0_66-t_LSTM_200-128_D_128-1053_softmax_e_250_l_50_mb_25_weights.bson" W
+# Flux.loadparams!(m, W)
 
 m = gpu(m)
 
@@ -78,7 +78,7 @@ end
 # save model
 # 
 
-function shortname!(model)
+function shortname!(model, settings = Dict(), timestamp=true)
     name = string(model)
     name = replace(name, r"[\s]+", "")
     name = replace(name, r"[\{\}]|Flux|Chain|NNlib|Recur|Base|Float64|Int64", "")
@@ -93,10 +93,22 @@ function shortname!(model)
     name = replace(name, r"\-\.", "_")
     name = replace(name, r"[\(\)\,\.\_]+", "_")
     name = replace(name, r"^\_|\_$", "")
-    name = string(name, "_e_", epochs, "_l_", max_seqlen, "_mb_", mini_batch)
+    if timestamp == true
+        datetime = now()
+        name = string(Dates.Date(datetime), "_", Dates.Time(datetime), "_", name)
+        name = replace(name, r"\.\d{3}", "")
+        name = replace(name, r"\:", "-")
+    end
+    for (k,v) in settings
+        name = string(name, "_", k, "=", v)
+    end
+    name
 end
 
-name = shortname!(m)
+name = shortname!(m, Dict(
+    "e" => epochs,
+    "l" => max_seqlen,
+    "nb" => mini_batch))
 
 # reset=true
 # to_cpu=true
@@ -104,9 +116,9 @@ name = shortname!(m)
 m = cpu(m)
 Flux.reset!(m)
 
-@save string("data/models/", Dates.today(), "_", name, "model.bson") m
+@save string("data/models/", name, "_model.bson") m
 W = Tracker.data.(params(m))
-@save string("data/models/", Dates.today(), "_", name, "_weights.bson") W
+@save string("data/models/", name, "_weights.bson") W
 
 
 # 
@@ -123,8 +135,8 @@ function sample(m, alphabet, len; temp = 1)
         write(buf, c)
         c = wsample(alphabet, m(onehot(c, alphabet)).data)
     end
-    # return String(take!(buf))
-    return Int64.(take!(buf))
+    return String(take!(buf))
+    # return Int64.(take!(buf))
 end
 
 sample(m, events, 100) |> println
