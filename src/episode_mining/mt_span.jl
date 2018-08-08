@@ -162,7 +162,6 @@ end
 function mt_span(
     sequence::Vector{Int64},
     utilities::Vector{Float64},
-    # hueSet::Dict{Vector{Int64},Vector{Intervall}},
     mtd::Int64 = 0,
     min_sup::Int64 = 1,
     min_utililty::Float64 = 0.0,
@@ -273,5 +272,5 @@ function mt_span(
         @show length(hueSet)
     end
 
-    hueSet
+    hueSet, moSet
 end

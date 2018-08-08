@@ -1,12 +1,13 @@
 
-include(joinpath("src","episode_mining","mt_span.jl"))
+# include(joinpath("..","..","src","episode_mining","mt_span.jl"))
+include(joinpath(pwd(),"src","episode_mining","mt_span.jl"))
 
 max_duration = 8
 min_support  = 2
 max_repetition = 0
 max_gap = 0
 
-#                A B C E D G E A B C F E E A B D 
+#                A B C E D G E A B C F E E A B D
 sequence = Int64[1,2,3,5,4,8,5,1,2,3,7,5,5,1,2,4]
 #                0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1
 #                1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6
@@ -45,7 +46,7 @@ end
 # utilities = map(u->(u/max_utilitly)^100, utilities)
 
 
-# big rocks: 715, 
+# big rocks: 715,
 # blacklist_51750 = [468, 493, 512, 528, 547, 565, 575, 584, 593, 603, 620, 629, 630, 631, 632, 643, 646, 674, 715, 717, 718, 721, 722, 728, 729, 731, 732, 735, 736, 770]
 # greylist_51750 = [616, 638, 691, 714, 739, 740, 743, 746, 749, 769, 773, 776, 786, 787, 800, 812, 815]
 # for event in sort(collect(keys(vertical)))
@@ -77,7 +78,7 @@ end
 # @show "total"
 # @profile
 begin
-    hueSet = @time mt_span(
+    hueSet, moSet = @time mt_span(
         sequence,       # ES - event sequence
         utilities,      # external utilities per event
         max_duration,   # maximal time duration
@@ -86,7 +87,7 @@ begin
         max_repetition, # maximum repetitions for each event
         max_gap;        # maximal gap
         verbose = false,
-        parallel = false)
+        parallel = true)
 end
 # secs = map(t -> t[2], ts)
 # @show indmax(secs)
@@ -114,5 +115,7 @@ sort(collect(hueSet), by=kv->(length(kv[2]),length(kv[1])), rev=false)
 
 # hueSet[[1, 2, 3, 1, 2]] # sup:1 -overlapping candidate
 # assert(length(hueSet[[1, 2, 3, 1, 2]]) == 1)
+
+moSet
 
 hueSet
