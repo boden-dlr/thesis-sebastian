@@ -438,10 +438,10 @@ validation = OrderedDict(
 df = DataFrame(validation)
 
 if first_entry
-    CSV.write(joinpath(pwd(),"data/experiments/deep-kate/scores_v5_train=0.7_test=0.3_.csv"), df)
+    CSV.write(joinpath(pwd(),"data/experiments/deep-kate/scores_v6_train=0.7_test=0.3_algo=ball_tree.csv"), df)
     first_entry = false
 else
-    CSV.write(joinpath(pwd(),"data/experiments/deep-kate/scores_v5_train=0.7_test=0.3_.csv"), df, append=true)
+    CSV.write(joinpath(pwd(),"data/experiments/deep-kate/scores_v6_train=0.7_test=0.3_algo=ball_tree.csv"), df, append=true)
 end
 
 end
