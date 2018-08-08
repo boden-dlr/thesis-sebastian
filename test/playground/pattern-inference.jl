@@ -184,8 +184,8 @@ end
 # 
 # get unique terms and counts
 # 
-terms = NLP.terms(piped)
-termcount = NLP.count_terms(piped, terms=terms)
+# terms = NLP.terms(piped)
+termcount = NLP.count_terms(piped) #, terms=terms)
 
 # n = length(termcount)
 # max = maximum(values(termcount))
@@ -280,7 +280,7 @@ function train_model(doc::Normalized, seed::Integer)
 
     opt = Flux.ADAM(params(m))
 
-    for e = 1:0
+    for e = 1:1
         info("Epoch $e")
         Flux.train!(
             loss,

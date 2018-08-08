@@ -77,25 +77,19 @@ function binary(term::String, document::Document;
 end
 
 
-function count_terms(document::Document;
-    terms::Union{Terms,Void} = nothing)::TermCount
-
-    if terms == nothing
-        warn(warnings[:terms])
-        terms = NLP.terms(document)
-    end
-
-    wc = Dict{String,Int64}(map(term -> term => 0, terms))
+function count_terms(document::Document, normalize=identity)::TermCount
+    vocab = Dict{String,Int64}()
     for line in document
-        for term in line
-            wc[term] += 1
+        for word in line
+            word = normalize(word)
+            if haskey(vocab, word)
+                vocab[word] += 1
+            else
+                vocab[word] = 1
+            end
         end
     end
-
-    TermCount(sort(
-        collect(wc),
-        by  = (t) -> t[2],
-        rev = true))
+    TermCount(sort(collect(vocab), by=kv->kv[2], rev=true))
 end
 
 @deprecate count_words count_terms
@@ -404,8 +398,8 @@ function split_and_keep_splitter(str::S, pattern::Regex;
                 push!(list, before)
                 push!(list, current)
             else
-                before  != ""  ? push!(list, before) : nothing
-                current != ""  ? push!(list, current) : nothing
+                before  != "" ? push!(list, before) : nothing
+                current != "" ? push!(list, current) : nothing
             end
 
             if i == n
@@ -413,7 +407,7 @@ function split_and_keep_splitter(str::S, pattern::Regex;
                 if keep_empty
                     push!(list, last)
                 else
-                    last    != "" ? push!(list, last) : nothing
+                    last != "" ? push!(list, last) : nothing
                 end
             end
         end
