@@ -86,7 +86,7 @@ function (a::KCompetetive)(x)
 
     # Return z instead of z_hat in order to conserve 
     # the gradient for back-propagation. This is possible
-    # as z_hat contains the values of z by reference.
+    # as z_hat is only a reference to z.
     return z 
 end
 
