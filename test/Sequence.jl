@@ -19,7 +19,7 @@ assert(result == String[
     " ", "a", "n", "d", " ", "d", "i", "g", "e", "s", "t", "e", "d", 
     "."])
 
-result = ngram(text)
+result = ngram(text, 2)
 assert(length(result) == N-1)
 assert(result == String[
     "So", "om", "me", "e ", " b", "bo", "oo", "ok", "ks", "s ", " a", 
