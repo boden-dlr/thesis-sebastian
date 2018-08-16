@@ -6,7 +6,7 @@ function key(kv::Pair)
     kv[1]
 end
 
-function invert(text::Array{Array{String}}, tokens::Array{String})    
+function invert(text::Vector{Vector{String}}, tokens::Vector{String})    
     
     inverted_index = Dict{String,Vector{Tuple{Int64,Int64}}}()
     
