@@ -14,7 +14,7 @@ Terms = Set{String}
 Line = Array{String,1}
 Document = Array{Line,1}
 Corpus = Array{Document,1}
-Dict = DataStructures.OrderedDict
+NLPDict = DataStructures.OrderedDict
 
 # ::Array{Array{String,1},1}
 # function count_words(text)
@@ -33,11 +33,11 @@ Dict = DataStructures.OrderedDict
 #             rev = true))
 # end
 
-TermCount = DataStructures.OrderedDict{String, Int64}
+TermCount = NLPDict{String, Int64}
 TermCounts = Array{TermCount,1}
 @deprecate WordCount TermCount
 @deprecate WordCounts TermCounts
-TermFrequency = DataStructures.OrderedDict{String, Float64}
+TermFrequency = NLPDict{String, Float64}
 TermFrequencies = Array{TermFrequency,1}
 
 warnings = Dict(
@@ -78,7 +78,7 @@ end
 
 
 function count_terms(document::Document, normalize=identity)::TermCount
-    vocab = Dict{String,Int64}()
+    vocab = NLPDict{String,Int64}()
     for line in document
         for word in line
             word = normalize(word)
@@ -93,22 +93,22 @@ function count_terms(document::Document, normalize=identity)::TermCount
 end
 
 @deprecate count_words count_terms
+@deprecate vocabulary count_terms
 
 
 function count_term(term::String, document::Document;
-    terms::Union{Terms,Void} = nothing,
     counts::Union{TermCount,Void} = nothing)::Int64
 
     if counts == nothing
         warn(warnings[:counts])
-        counts = NLP.count_terms(document, terms=terms)
+        counts = NLP.count_terms(document)
     end
     counts[term]
 end
 
 
 function count_terms(corpus::Corpus)::TermCounts
-    map(doc -> NLP.count_terms(doc; terms=NLP.terms(doc)), corpus)
+    map(doc -> NLP.count_terms(doc), corpus)
 end
 
 
@@ -296,7 +296,7 @@ function naive_inverse_document_frequency(term::String, corpus::Corpus;
     N = length(corpus)
     wcs = NLP.count_terms(corpus)
     terms = NLP.unique_terms(wcs)
-    terms_in_docs = NLP.Dict(map(
+    terms_in_docs = NLPDict(map(
         term -> term => convert(Int64, NLP.count_occurences(term, wcs)),
         terms))
 
@@ -308,6 +308,31 @@ function naive_tf_idf(term::String, document::Document, corpus::Corpus)
     # tf(t, d) * idf(t, D)
     term_frequency(term, document) * naive_inverse_document_frequency(term, corpus)
 end
+
+
+function normalize_by_max_count(document::NLP.Document, vocab::NLP.TermCount;
+    default = 0.0,
+    max_length = 1000,
+    max_count = -1)
+
+    L = length(document)
+    W = min(max_length, maximum(map(length, keys(vocab))))
+    if max_count == -1
+        max_count = maximum(values(vocab))
+    end
+    N = fill(default, (L,W))
+    for l in 1:L
+        for w in 1:W
+            if length(document[l]) > w
+                word = document[l][w]
+                N[l,w] = vocab[word] / max_count
+            end
+        end
+    end
+    N
+end
+
+@deprecate normalize_by_max normalize_by_max_count
 
 
 function tokenize(lines::Array{String};
