@@ -31,7 +31,7 @@ function KCompetetive(
   return KCompetetive(σ, param(initW(out, in)), param(initb(out)), k, α, active)
 end
 
-treelike(KCompetetive)
+Flux.treelike(KCompetetive)
 
 function (a::KCompetetive)(x)
     σ, W, b, k, α = a.σ, a.W, a.b, a.k, a.α
@@ -91,7 +91,7 @@ function (a::KCompetetive)(x)
 end
 
 
-_testmode!(a::KCompetetive, test) = (a.active = !test)
+Flux._testmode!(a::KCompetetive, test) = (a.active = !test)
 
 
 function Base.show(io::IO, l::KCompetetive)
