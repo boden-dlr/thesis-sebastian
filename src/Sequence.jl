@@ -2,7 +2,7 @@ module Sequence
 
 export rows, cols, flatmap
 
-function ngram(s, N::Int=2)
+function ngram(s, N::Int=1)
     grams = [s[i:i+N-1] for i = 1:(length(s)-N+1)]
     grams
 end
@@ -49,26 +49,6 @@ julia> flatmap(e->e.^2, A)
 
 """
 function flatmap(f::Function, A::Array)
-
-    # mapped = map(f, A)
-    
-    # ts = eltype(mapped).parameters
-    # t = eltype(eltype(mapped))
-    # M = length(mapped)
-    # T = length(ts)
-
-    # flattened = Array{t}(M*T)
-
-    # k = 1
-    # for (i,l) in enumerate(mapped)
-    #     for (j,elem) in enumerate(l)
-    #         flattened[k] = elem
-    #         k += 1
-    #     end
-    # end
-
-    # flattened
-    
     vcat(map(f, A)...)
 end
 
@@ -99,7 +79,7 @@ julia> rs = collect(rows(A))
  [110, 42, 87, 58, 103, 44, 153, 121, 106, 40]
 ```
 """
-function rows(A::Matrix)
+function rows(A::AbstractMatrix)
     T = typeof(A[1,:])
     Channel(ctype=T) do channel
         for r_i in 1:size(A)[1]
@@ -137,7 +117,7 @@ julia> cs = collect(cols(A))
  [191, 40, 85, 138, 40]
 ```
 """
-function cols(A::Matrix)
+function cols(A::AbstractMatrix)
     T = typeof(A[:,1])
     Channel(ctype=T) do channel
         for c_i in 1:size(A)[2]
