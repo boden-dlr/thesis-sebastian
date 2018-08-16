@@ -55,7 +55,7 @@ function s_concatenation!(
     prefix::Vector{Int64},
     moSet::Dict{Vector{Int64},Vector{Intervall}},
     hueSet::Dict{Vector{Int64},Vector{Intervall}}, # result set
-    mtd::Int64,
+    max_time_duration::Int64,
     min_sup::Int64,
     min_utililty::Float64,
     total_utility::Float64,
@@ -65,7 +65,7 @@ function s_concatenation!(
     l = length(prefix)
 
     for range in moSet[prefix]
-        I = range.stop+1:min(range.start+mtd+1,length(sequence))
+        I = range.stop+1:min(range.start+max_time_duration+1,length(sequence))
         # SES = @view sequence[I] # Set{Int64}()
         for t in I
             moBeta::Intervall = range.start:t
@@ -143,7 +143,7 @@ function s_concatenation!(
                                     beta,
                                     moSet,
                                     hueSet,
-                                    mtd,
+                                    max_time_duration,
                                     min_sup,
                                     min_utililty,
                                     total_utility,
@@ -162,7 +162,7 @@ end
 function mt_span(
     sequence::Vector{Int64},
     utilities::Vector{Float64},
-    mtd::Int64 = 0,
+    max_time_duration::Int64 = 0, # mtd
     min_sup::Int64 = 1,
     min_utililty::Float64 = 0.0,
     max_repetition::Int64 = -1,
@@ -178,16 +178,17 @@ function mt_span(
     There could be omitted prefixes due to excecution errors.
     
     Make sure to `set` (Windows) `export` (Mac/Linux) the number of
-    threads for Julia in the environment:
+    threads (number of virtual cores) for Julia in the OS environment.
     
-    ```sh
-        export JULIA_NUM_THREADS=2
-    ````
+    Example (Mac/Linux):
+
+        `export JULIA_NUM_THREADS=4`
+        
     \n
 """)
     end
 
-    if max_gap > mtd
+    if max_gap > max_time_duration
         warn("max_gap > max_time_duration has no effect.")
     end
 
@@ -238,7 +239,7 @@ function mt_span(
                     prefix,
                     moSet,
                     hueSet,
-                    mtd,
+                    max_time_duration,
                     min_sup,
                     min_utililty,
                     tu,
@@ -257,7 +258,7 @@ function mt_span(
                     prefix,
                     moSet,
                     hueSet,
-                    mtd,
+                    max_time_duration,
                     min_sup,
                     min_utililty,
                     tu,
