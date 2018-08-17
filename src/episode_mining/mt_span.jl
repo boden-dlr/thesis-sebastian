@@ -110,7 +110,7 @@ function s_concatenation!(
                 # N = { mo | if moBeta is proper subset of mo }
                 N = Vector{Intervall}()
                 for mo in moSet[beta]
-                    if moBeta.start > mo.start && moBeta.stop <= mo.stop
+                    if moBeta.start > mo.start && moBeta.stop <= mo.stop && mo.stop <= moBeta.start # last condition is to avoid false positives
                         push!(N,mo)
                     end
                 end
@@ -124,7 +124,7 @@ function s_concatenation!(
                     moSet[beta] = filtered
                     push!(moSet[beta], moBeta)
                 else
-                    if all(r -> r.stop <= moBeta.start, moSet[beta]) # NOTE: strange that M,N generates false positives
+                    # if all(r -> r.stop <= moBeta.start, moSet[beta]) # NOTE: strange that M,N generates false positives
                         push!(moSet[beta], moBeta)
                     
                         # for beta in betaSet ...
@@ -151,7 +151,7 @@ function s_concatenation!(
                                     max_gap)
                             end
                         end
-                    end
+                    # end
                 end
             end
         end
