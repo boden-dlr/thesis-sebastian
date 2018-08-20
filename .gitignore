@@ -12,6 +12,11 @@ syslog
 *.txt
 *.csv
 
+*.pdf
+*.odt
+*.doc
+*.docx
+
 *.json
 *.xml
 *.data
