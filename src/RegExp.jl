@@ -21,6 +21,7 @@ function escape(s::AbstractString)
     join(splitted, "")
 end
 
+# TODO: replace non-frequent words...
 
 function infer(
     samples::Vector{Vector{String}};
