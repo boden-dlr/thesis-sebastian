@@ -91,6 +91,16 @@ function betacv(C::AbstractArray)
 end
 
 
+function betacv(D::AbstractMatrix, C::Vector{Vector{Int}})
+    DC = [view(D,c,:) for c in C]
+
+    W_in, N_in = intra_cluster_weights(DC)
+    W_out, N_out = inter_cluster_weights(DC)
+    
+    (W_in / N_in) / (W_out / N_out)
+end
+
+
 function betacv_fused(C::AbstractArray; metric::Function = Distances.euclidean)
     K = length(C)
     W_in, W_out = 0.0, 0.0
