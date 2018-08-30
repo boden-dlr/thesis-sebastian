@@ -2,7 +2,8 @@ module ETL
 
 using Glob
 using Glob: GlobMatch
-using JuliaDB
+using Dates
+
 
 struct Dataset
     files::String

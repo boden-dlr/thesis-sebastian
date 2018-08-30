@@ -114,7 +114,7 @@ function invert(text::Array{Array{String}}, token::String)
     inverted_index
 end
 
-function invert{N<:Number}(itr::Array{N})
+function invert(itr::Array{N}) where {N<:Number}
     d = Dict{N,Vector{Int64}}()
     keys = unique(itr)
     for key in keys
@@ -126,8 +126,8 @@ function invert{N<:Number}(itr::Array{N})
     d
 end
 
-function pairs{N<:Number}(sequence::Array{N,1};
-    unique = true, overlapping = false, gap = -1)
+function pairs(sequence::Array{N,1};
+    unique = true, overlapping = false, gap = -1) where {N<:Number}
 
     pairs = Dict{Tuple{N,N},Vector{Tuple{Int64,Int64}}}()
 

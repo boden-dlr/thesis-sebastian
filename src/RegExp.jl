@@ -25,7 +25,7 @@ end
 
 function infer(
     samples::Vector{Vector{String}};
-    replacements::Union{Vector{String},Void} = nothing,
+    replacements::Union{Vector{String},Nothing} = nothing,
     label::Regex = r"%[0-9A-Z\_]*?%",
     asterix::String = ".*?",
     regex = false)
@@ -80,7 +80,7 @@ function infer(
     joined = strip(join(joins))
     
     if regex
-        try return Regex(joined) catch warn(joined) end
+        try return Regex(joined) catch; warn(joined) end
     else
         return joined
     end

@@ -31,7 +31,7 @@ function KCompetetive(
   return KCompetetive(σ, param(initW(out, in)), param(initb(out)), k, α, active)
 end
 
-Flux.treelike(KCompetetive)
+Flux.@treelike(KCompetetive)
 
 function (a::KCompetetive)(x)
     σ, W, b, k, α = a.σ, a.W, a.b, a.k, a.α
@@ -58,7 +58,7 @@ function (a::KCompetetive)(x)
 
     z_hat = data(z)
     
-    p = P-round(Int64, k/2)
+    p = P-round(Int64, k/2, RoundUp)
     if p > 0
         Epos = sum(map(last, ps[1:p]))
         for i = p+1:P
@@ -71,7 +71,7 @@ function (a::KCompetetive)(x)
         end
     end
 
-    n = N-round(Int64, k/2)
+    n = N-round(Int64, k/2, RoundDown)
     if n > 0
         Eneg = sum(map(last, ns[1:n]))
         for i = n+1:N

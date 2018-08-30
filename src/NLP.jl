@@ -68,7 +68,7 @@ end
 
 
 function binary(term::String, document::Document;
-    terms::Union{Terms,Void} = nothing)::Int64
+    terms::Union{Terms,Nothing} = nothing)::Int64
     if terms == nothing
         warn(warnings[:terms])
         terms = NLP.terms(document)
@@ -97,7 +97,7 @@ end
 
 
 function count_term(term::String, document::Document;
-    counts::Union{TermCount,Void} = nothing)::Int64
+    counts::Union{TermCount,Nothing} = nothing)::Int64
 
     if counts == nothing
         warn(warnings[:counts])
@@ -169,8 +169,8 @@ end
 """
 function term_frequency(term::String, document::Document;
     mode::Symbol = :double_normalized,
-    terms::Union{Terms,Void} = nothing,
-    counts::Union{TermCount,Void} = nothing,
+    terms::Union{Terms,Nothing} = nothing,
+    counts::Union{TermCount,Nothing} = nothing,
     K::Float64 = 0.5)
 
     if terms == nothing
@@ -200,8 +200,8 @@ end
 
 function naive_term_frequency(term::String, document::Document;
     normalize::Bool = true,
-    wc::Union{TermCount, Void} = nothing,
-    max::Union{Float64, Void} = nothing)
+    wc::Union{TermCount, Nothing} = nothing,
+    max::Union{Float64, Nothing} = nothing)
 
     wc == nothing ? wc = count_words(document) : wc
     result::Float64 = wc[term]
@@ -241,7 +241,7 @@ end
         :max                `log(max(terms_in documents) / 1 + n_term)`
         :probabilistic      `log(N - n_term / n_term)`
 
-    divzero::Float64 = 1.0  Avoid division by zero by adding a threshold to the 
+    divzero::Float64 = 1.0  Avoid division by zero by adding a threshold to the
                             idf-denominator.
                             Modes `:unary` and `:max` always avoid divison by
                             zero.
@@ -251,7 +251,7 @@ end
         ```julia
         terms = NLP.terms(corpus)
         term_counts = NLP.count_terms(corpus)
-        max = maximum(map(term -> 
+        max = maximum(map(term ->
             convert(Int64, NLP.count_occurences(term, term_counts)),
             terms))
         ```
@@ -263,12 +263,12 @@ function inverse_document_frequency(
     n_term::Integer;
     mode::Symbol = :idf,
     divzero::Float64 = 0.0,
-    max::Union{Integer,Void} = N)
+    max::Union{Integer,Nothing} = N)
 
     if mode == :unary
         return 1.0
     end
-    
+
     if mode == :idf
         return log(N / (divzero + n_term))
     elseif mode == :smooth
@@ -289,7 +289,7 @@ end
 function naive_inverse_document_frequency(term::String, corpus::Corpus;
     mode::Symbol = :idf,
     divzero::Float64 = 0.0,
-    max::Union{Integer,Void} = nothing)
+    max::Union{Integer,Nothing} = nothing)
     warn("""Using the naive idf implementation is not recommended.
     Consider using `NLP.inverse_document_frequency` by providing precalculated arguments.""")
 
@@ -312,7 +312,7 @@ end
 
 function normalize_by_max_count(document::NLP.Document, vocab::NLP.TermCount;
     default = 0.0,
-    max_length = 1000,
+    max_length = 250,
     max_count = -1)
 
     L = length(document)
@@ -336,7 +336,7 @@ end
 
 
 function tokenize(lines::Array{String};
-    limit::Nullable{Int64} = Nullable{Int64}(),
+    limit::Union{Int64,Nothing} = nothing,
     splitby::Regex = r"\s+",
     replacements::Array{Tuple{Regex,String}} = Array{Tuple{Regex,String}}(0),
     lower::Bool = false)
@@ -378,7 +378,7 @@ function tokenize(lines::Array{String};
         lines_limited = lines_reduced[1:limit.value]
     end
 
-    if lower 
+    if lower
         lines_limited = map((line) -> map((word) -> lowercase(word), line),lines_limited)
     end
     # @show lines_limited
@@ -397,9 +397,9 @@ end
 function split_and_keep_splitter(str::S, pattern::Regex;
     keep_empty=false) where S<:AbstractString
 
-    list::Union{Void,Array{S}} = nothing
-    
-    ms = matchall(pattern, str)
+    list::Union{Nothing,Array{S}} = nothing
+
+    ms = collect((m.match for m = eachmatch(pattern, str)))
     if isempty(ms)
         if keep_empty
             list = [str]
@@ -407,8 +407,8 @@ function split_and_keep_splitter(str::S, pattern::Regex;
             str == "" ? list = [] : list = [str]
         end
     else
-        list = Vector{S}()        
-        splts = map(m->(m.offset+1,m.offset+m.endof),ms)
+        list = Vector{S}()
+        splts = map(m->(m.offset+1,m.offset+m.ncodeunits),ms)
         n = length(splts)
         for (i,splt) in enumerate(splts)
             current = str[splt[1]:splt[2]]
@@ -418,7 +418,7 @@ function split_and_keep_splitter(str::S, pattern::Regex;
             else
                 before = str[splts[i-1][2]+1:splt[1]-1]
             end
-                
+
             if keep_empty
                 push!(list, before)
                 push!(list, current)
