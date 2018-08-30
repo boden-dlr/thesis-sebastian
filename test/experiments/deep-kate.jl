@@ -1,16 +1,20 @@
 using LogClustering.NLP
 using LogClustering.Parsing
-using LogClustering.Parsing: Label, LineParser, WordParser, LineSplitter
+using LogClustering.Parsing: Label, Parser, Splitter
 # using LogClustering.Models
 using LogClustering.Sequence
-using LogClustering.Validation: betacv, sdbw
+using LogClustering.Validation: betacv, sdbw, arsd
 using LogClustering.ClusteringUtils: assignments_to_clustering
 using LogClustering.RegExp
 # using LogClustering.KATE
 
+using Dates
 using Plots
 gr()
+#plotlyjs()
 using DataStructures
+using Statistics
+using Random
 using Clustering
 using DataFrames
 using CSV
@@ -19,9 +23,7 @@ using PyCall
 @pyimport sklearn.metrics as SkMetrics
 #@pyimport sklearn.preprocessing as SkPreprocess
 
-
 include(joinpath(pwd(), "test/models/DeepKATE.jl"))
-
 
 first_entry = true
 
@@ -33,12 +35,12 @@ first_entry = true
 
 filenames = [
     joinpath(pwd(),"data/datasets/RCE/2014-12-02_08-58-09_1048.log"),
-    # joinpath(pwd(),"data/datasets/RCE/2017-10-04_19-30-58_1357.log"),
-    # joinpath(pwd(),"data/datasets/RCE/2017-02-24_10-25-48_2407.log"),
-    # joinpath(pwd(),"data/datasets/RCE/2016-09-26_16-15-03_5495.log"),
-    # joinpath(pwd(),"data/datasets/RCE/2017-02-24_10-26-01_6073.log"),
-    # joinpath(pwd(),"data/datasets/RCE/2017-11-30_15-09-09_6482.log"),
-    # joinpath(pwd(),"data/datasets/RCE/2018-03-01_15-11-18_51750.log")
+    joinpath(pwd(),"data/datasets/RCE/2017-10-04_19-30-58_1357.log"),
+    joinpath(pwd(),"data/datasets/RCE/2017-02-24_10-25-48_2407.log"),
+    joinpath(pwd(),"data/datasets/RCE/2016-09-26_16-15-03_5495.log"),
+    joinpath(pwd(),"data/datasets/RCE/2017-02-24_10-26-01_6073.log"),
+    joinpath(pwd(),"data/datasets/RCE/2017-11-30_15-09-09_6482.log"),
+    joinpath(pwd(),"data/datasets/RCE/2018-03-01_15-11-18_51750.log")
 ]
 
 # rounds_options      = 1:10
@@ -49,55 +51,45 @@ filenames = [
 # min_cluster_options = [2,5,10]
 
 # filenames           = [filenames[1]]
-rounds_options      = 1
-latents_options     = [3]
-epochs_options      = [10]
+unique_id           = Dates.format(now(), "yyyy-mm-dd_HHMM")
+verbose             = false
+anomaly_detection   = false
+rounds_options      = 1:1
+latents_options     = [2, 3, 4]
+epochs_options      = [0, 1, 3]
 neighbors_options   = [1]
-epsilon_options     = [0.01]
+epsilon_options     = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 1.5, 2.0]
 min_cluster_options = [2]
 
 function add_two(assignments)
     map(a->a+2,assignments)
 end
 
+figure_index = 0
 
 for filename in filenames
-info("file: $filename")
+@info "file: $filename"
 
-filename = filenames[1]
+# filename = filenames[1]
 # file = vcat([readlines(filename) for filename in filenames]...)
 file = readlines(filename)
 
-line_parser = Tuple{Label,Regex,Function}[
-    LineParser[:rce_datetime],
-    # LineParser[:syslog_datetime],
-    # LineParser[:file],
-    # LineParser[:path],
-    # LineParser[:uri],
-    # LineParser[:ipv4],
-    LineParser[:float],
-    LineParser[:hex_id],
-    LineParser[:id],
-    LineParser[:int],
+log_labels = Tuple{Label,Regex,Function}[
+    Parser[:rce_datetime],
+    # Parser[:syslog_datetime],
+    Parser[:ipv4],
+    Parser[:float],
+    Parser[:file],
+    Parser[:path],
+    # Parser[:uri],
+    Parser[:hex_id],
+    Parser[:id],
+    Parser[:int],
     ]
 
-word_parser = Tuple{Label,Regex,Function}[
-    WordParser[:hex_id],
-    WordParser[:id],
-    # WordParser[:float],
-    WordParser[:int],
-    ]
+event_log = Parsing.parse_event_log(file, log_labels, Splitter[:positive])
 
-   
-event_log = parse_event_log(file,
-    line_parser = line_parser,
-    # word_parser = word_parser,
-    line_splitter = LineSplitter[:rce_splitter],
-    # line_splitter = r"\s+|[\.\=\:\@\$\(\)\[\]\{\}]+|\,\s|\.\s",
-    # line_splitter = r"\s+|[\.\=\:\@\$\(\)\[\]\{\}]+|[^a-zA-Z0-9\%\_]+",
-    join_log_keys = false)
-
-event_log.log_keys
+n = length(event_log.log_keys)
 event_log.log_values
 event_log.log_times
 
@@ -107,8 +99,14 @@ log_keys = [join(lk) for lk in event_log.log_keys]
 
 # data_matrix = hcat(KATE.normalize(event_log.log_keys, NLP.count_terms(event_log.log_keys))...)'
 
-data_matrix = Parsing.normalize_log_keys(event_log)
-values_matrix = Parsing.normalize_log_values(event_log)
+data_matrix = Parsing.normalize_log_keys(event_log, padding = 200)
+values_matrix = Parsing.normalize_log_values(event_log, padding = 250)
+
+# for anomaly detection, include data...
+if anomaly_detection
+    @info "anomaly detection: active"
+    data_matrix = hcat(data_matrix, values_matrix)
+end
 
 # @show size(data_matrix)
 # data_matrix = hcat(data_matrix, values_matrix)
@@ -118,21 +116,23 @@ data_vec = collect(Sequence.rows(data_matrix))
 
 
 for rounds in rounds_options
-info("round: $rounds")
-
+@info "round: $rounds"
 n_samples = length(log_keys)
-seed  = rand(1:10000)
-
+seed = rand(1:10000)
+# seed = 1111
 
 for latent in latents_options
-info("latent: $latent")
+@info "latent: $latent"
 
 for epochs in epochs_options
-info("epochs: $epochs")
+@info "epochs: $epochs seed: $seed"
 # epochs = 1
 
-train = rand(1:n_samples, round(Int64, n_samples * 0.7))
+# train = rand(1:n_samples, round(Int64, n_samples * 0.7))
 # test = setdiff([1:n_samples...], train)
+
+# train = [1:n_samples...]
+train = Random.rand(1:n_samples, floor(Int64, 0.1 * n_samples))
 test = [1:n_samples...]
 
 model = fit_deep_kate(data_vec[train], seed, latent, epochs)
@@ -143,10 +143,10 @@ embeddings, reconstruction = generate(model, data_vec[test])
 embeddings = scale(embeddings)
 
 for min_neighbors_dbscan in neighbors_options
-info("neighbors: $min_neighbors_dbscan")
+@info "neighbors: $min_neighbors_dbscan"
 # min_neighbors_dbscan = 10
 for epsilon in epsilon_options
-info("epsilon: $epsilon")
+@info "epsilon: $epsilon"
 # epsilon = 0.03
 #algorithm = "auto" # "ball_tree", "kd_tree"
 sk_dbscan = SkCluster.DBSCAN(
@@ -159,8 +159,7 @@ db = sk_dbscan[:fit](embeddings)
 prediction = convert.(Int64,db[:labels_])
 prediction_jl = add_two(prediction)
 
-n_cluster = length(IntSet(prediction.+2))-1
-
+n_cluster = length(BitSet(prediction.+2))-1
 
 Y = Dict{String,Dict{Int64,Int64}}()
 for (l, label) in enumerate(prediction)
@@ -177,31 +176,39 @@ for (l, label) in enumerate(prediction)
 end
 
 for min_cluster_size in min_cluster_options
-info("min_cluster_size: $min_cluster_size")
+@info "min_cluster_size: $min_cluster_size"
 # min_cluster_size = 2
 
 function sort_by_value(dict, min_cluster_size = 5)
     descending = sort(collect(dict), by=kv->kv[2], rev=true)
     (label,count) = first(descending)
-    count >= min_cluster_size ? label : -1
+    count >= min_cluster_size ? label : -1 # TODO: activate again
+    # count >= min_cluster_size ? label : descending[min(2,end)][1]
 end
 mayority_labels = Dict([log_key => sort_by_value(occs, min_cluster_size) for (log_key,occs) in Y])
 target = [mayority_labels[lk] for lk in log_keys[test]]
 target_jl = add_two(target)
 
 
-(adj_rand_jl, rand_jl, mirkins_jl, huberts_jl) = randindex(target_jl, prediction_jl)
+(adj_rand_jl, rand_jl, mirkins_jl, huberts_jl) = Clustering.randindex(target_jl, prediction_jl)
 
-variation_of_info = varinfo(maximum(IntSet(target_jl)), target_jl, maximum(IntSet(prediction_jl)), prediction_jl)
+variation_of_info = Clustering.varinfo(
+    maximum(BitSet(target_jl)),
+    target_jl,
+    maximum(BitSet(prediction_jl)),
+    prediction_jl)
 
 C_prediction_jl = assignments_to_clustering(prediction_jl)
+# @show C_prediction_jl
+# @show size(embeddings)
 
-s_dbw_res, scatter, dense_bw = sdbw(transpose(embeddings), C_prediction_jl, dense=false)
-
+s_dbw_res, scattering, dense_bw = sdbw(transpose(embeddings), C_prediction_jl, dense=false)
 
 
 validation = OrderedDict(
     :samples            => n_samples,
+    :train              => length(train),
+    :test               => length(test),
     :seed               => seed,
     :latent             => latent,
     :epochs             => epochs,
@@ -215,10 +222,17 @@ validation = OrderedDict(
     :median_error       => median_error,
     :mean_error         => mean_error,
 
+    # data measure
+    :l_var              => Statistics.var(embeddings),
+    :l_std              => Statistics.std(embeddings),
+    :l_median           => Statistics.median(embeddings),
+    :l_mean             => Statistics.mean(embeddings),
+
     # internal-indices
-    :betacv             => betacv(C_prediction_jl),
-    :scattering         => scatter,
-    # :sdbw               => s_dbw_res, 
+    :betacv             => betacv(embeddings, C_prediction_jl),
+    :scattering         => scattering,
+    # :sdbw               => s_dbw_res,
+    :arsd               => arsd(embeddings, C_prediction_jl),
 
     # relative-indices
     :silhouette         => try SkMetrics.silhouette_score(embeddings, prediction) catch nothing end, # does not like big files...
@@ -251,57 +265,77 @@ validation = OrderedDict(
 df = DataFrame(validation)
 
 # name = "data/experiments/deep-kate/scores_v6_train=0.7_test=0.3_algo=ball_tree.csv"
-# name = "data/experiments/deep-kate/test.csv"
-# if first_entry
-#     CSV.write(joinpath(pwd(),name), df)
-#     first_entry = false
-# else
-#     CSV.write(joinpath(pwd(),name), df, append=true)
-# end
 
-reps = collect(keys(Dict{String,Union{Regex,Void}}(
-    LineParser[:rce_datetime][1].label => LineParser[:rce_datetime][2],
-    LineParser[:hex_id][1].label => nothing,
-    LineParser[:file][1].label => nothing,
-    LineParser[:path][1].label => nothing,
-    LineParser[:ipv4][1].label => nothing,
-    LineParser[:uri][1].label => nothing,
-    LineParser[:id][1].label => nothing,
-    LineParser[:float][1].label => r"\d+[,.]\d+",
-    LineParser[:int][1].label => r"\d+",
-    )))
 
-for (i, C_i) in enumerate(C_prediction_jl)
-    members = C_i
-    if length(C_i) > 1
-        lks = event_log.log_keys[members][1:min(end,20)]
-        re = RegExp.infer(lks, replacements = reps, regex=true)
-        info(i, "\t", length(C_i))
-        # for l in eachindex(lks)
-        #     if l % 2 == 0
-        #         info("   ", lks[l])
-        #     else
-        #         warn(lks[l])
-        #     end
-        # end
-        println("\t", re)
-        println()
+name = string("data/experiments/deep-kate/test_all_", unique_id, ".csv")
+if first_entry
+    CSV.write(joinpath(pwd(),name), df)
+    first_entry = false
+else
+    CSV.write(joinpath(pwd(),name), df, append=true)
+end
+
+
+if verbose
+    reps = collect(keys(Dict{String,Union{Regex,Nothing}}(
+        Parser[:rce_datetime][1].label => Parser[:rce_datetime][2],
+        Parser[:hex_id][1].label => nothing,
+        Parser[:file][1].label => nothing,
+        Parser[:path][1].label => nothing,
+        Parser[:ipv4][1].label => nothing,
+        Parser[:uri][1].label => nothing,
+        Parser[:id][1].label => nothing,
+        Parser[:float][1].label => r"\d+[,.]\d+",
+        Parser[:int][1].label => r"\d+",
+        )))
+
+    for (i, C_i) in enumerate(C_prediction_jl)
+        members = C_i
+        if length(C_i) > 1
+            lks = event_log.log_keys[members][1:min(end,20)]
+            re = RegExp.infer(lks, replacements = reps, regex=true)
+            @info string(i, "\t", length(C_i))
+            # for l in eachindex(lks)
+            #     if l % 2 == 0
+            #         @info "   ", lks[l]
+            #     else
+            #         warn(lks[l])
+            #     end
+            # end
+            println("\t", re)
+            println()
+        end
     end
 end
 
 # @show event_log.log_keys
 
-figure_raw = scatter3d(embeddings[:,1], embeddings[:,2], embeddings[:,3],
-# figure_raw = scatter3d(embeddings,
+figure_index += 1
+
+if latent == 2
+    figure_raw = scatter(embeddings[:,1], embeddings[:,2],
     marker_z = prediction_jl,
-    labels = ["clustered"])
+    labels = ["embedded"],
+    title = "n: $n, seed: $seed, latent: $latent, epoch: $epochs, eps: $epsilon")
+else #if latent == 3
+    figure_raw = scatter3d(embeddings[:,1], embeddings[:,2], embeddings[:,3],
+    marker_z = prediction_jl,
+    labels = ["embedded"],
+    title = "n: $n, seed: $seed, latent: $latent, epoch: $epochs, eps: $epsilon")
+end
+
+savefig(figure_raw,string(
+    "data/experiments/deep-kate/plots/latent_",
+    unique_id, "_",
+    figure_index, ".png"))
 
 display(figure_raw)
-# sleep(5)
 
 @show df
-@show minimum(embeddings)
-@show maximum(embeddings)
+# @show minimum(embeddings)
+# @show maximum(embeddings)
+
+# sleep(10)
 
 end
 end
@@ -310,4 +344,3 @@ end
 end
 end
 end
-

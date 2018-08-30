@@ -49,16 +49,14 @@ using LogClustering.KATE: KCompetetive
         l = KCompetetive(N, L, tanh, initW=zeros, initb=activations, k=k)
 
         # mode: testing
-        # testmode!(l, true)
-        l.active = false
+        Flux.testmode!(l)
         @test l.active == false
         result = data(l(x))
         expected = z
         @test result ≈ expected
 
         # mode: training
-        # testmode!(l, false)
-        l.active = true
+        Flux.testmode!(l, false)
         @test l.active == true
         result = data(l(x))
         Epos = 0.3
