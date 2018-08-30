@@ -1,6 +1,7 @@
 # __precompile__()
 module LogClustering
     
+    include("serialize/Serialize.jl")
     include("Sort.jl")
     include("Sequence.jl")
     include("Index.jl")
