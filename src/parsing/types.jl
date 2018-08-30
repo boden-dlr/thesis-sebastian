@@ -1,5 +1,4 @@
 
-
 mutable struct Label
     label::String
     multi::Char
@@ -14,7 +13,7 @@ mutable struct Label
         if length(label) == 1 && label != string(single)
             throw(ParseError("a single-char label should be '$single'"))
         end
-        if contains(label, string(multi))
+        if occursin(string(multi), label)
             throw(ParseError("a multi-char label should not contain the special char '$multi'"))
         end
 
@@ -28,4 +27,24 @@ end
 
 function Base.show(io::IO, l::Label)
     print(io, l.label)
+end
+
+
+struct LogAttr{T,S<:AbstractString,L<:Union{Label,Nothing}}
+    value::T
+    source::S
+    label::L
+    occurrence::UnitRange{Int}
+end
+
+function LogAttr(value, source)
+    LogAttr(value, source, nothing, 0:0)
+end
+
+
+mutable struct EventLog
+    log_keys::Vector{Vector{String}}
+    log_values::Vector{Vector{LogAttr}}
+    log_times::Vector{Int64}
+    embeddings::Union{Vector{Vector{Float64}},Nothing}
 end

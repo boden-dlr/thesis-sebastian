@@ -26,18 +26,18 @@ file = log_files[1]
     log = readlines(file)
 
     lp = Tuple{Label,Regex,Function}[
-        Parsing.LineParser[:rce_datetime],
-        Parsing.LineParser[:ipv4],
-        Parsing.LineParser[:float],
+        Parsing.Parser[:rce_datetime],
+        Parsing.Parser[:ipv4],
+        Parsing.Parser[:float],
         ]
 
     wp = Tuple{Label,Regex,Function}[
-        Parsing.WordParser[:hex_id],
-        Parsing.WordParser[:id],
-        Parsing.WordParser[:int],
+        Parsing.Parser[:hex_id],
+        Parsing.Parser[:id],
+        Parsing.Parser[:int],
         ]
 
-    event_log = @time Parsing.parse_event_log(log,
+    event_log = @time Parsing.parse_event_log_two_stage(log,
         line_parser = lp,
         word_parser = wp)
 
@@ -52,7 +52,7 @@ file = log_files[1]
 # test - regular expressions 
 #
 
-HEX_ID = Parsing.WordParser[:hex_id][2]
+HEX_ID = Parsing.Parser[:hex_id][2]
 # negatives
 assert(match(HEX_ID, "1234567890") == nothing)
 assert(match(HEX_ID, "ABCDEF") == nothing)
@@ -64,7 +64,7 @@ assert(match(HEX_ID, "ADEF-2") isa RegexMatch)
 assert(match(HEX_ID, "ADEF_2") isa RegexMatch)
 match(HEX_ID, "ADEF:2") isa RegexMatch # fails
 
-ID = Parsing.WordParser[:id][2]
+ID = Parsing.Parser[:id][2]
 # negatives
 assert(match(ID, "CONNECTING") == nothing)
 assert(match(ID, "WAITING_TO_RECONNECT") == nothing)
@@ -77,7 +77,7 @@ assert(match(ID, "c11r") isa RegexMatch)
 assert(match(ID, "c11r-8ca99c5cb50d4055a2a57d7f0cb10db7") isa RegexMatch)
 
 
-VERSION = Parsing.LineParser[:version][2]
+VERSION = Parsing.Parser[:version][2]
 # negatives
 match(VERSION, "255.255.255.255") == nothing # fails
 
@@ -94,7 +94,7 @@ assert(match(VERSION, "1.2.3-RC1") isa RegexMatch)
 assert(match(VERSION, "1.2.3-RC1.0") isa RegexMatch)
 
 
-PATH = Parsing.WordParser[:path][2]
+PATH = Parsing.Parser[:path][2]
 # negatives
 assert(match(PATH, "NoPath") == nothing)
 assert(match(PATH, "file.ext") == nothing)
@@ -112,7 +112,7 @@ assert(match(PATH, "file://PATH") isa RegexMatch)
 assert(match(PATH, "file://PATH/") isa RegexMatch)
 assert(match(PATH, "P:\\rce7\\profiles\\ly_hpc03_wfhost_students_7.0.1\\internal\\shutdown.dat") isa RegexMatch)
 
-FILE = Parsing.WordParser[:file][2]
+FILE = Parsing.Parser[:file][2]
 # negatives
 assert(match(FILE, "not.file.ext") == nothing)
 assert(match(FILE, "not_a_file.ext55") == nothing)
@@ -121,7 +121,7 @@ assert(match(FILE, "not_a_file.ext55") == nothing)
 assert(match(FILE, "file.ext") isa RegexMatch)
 assert(match(FILE, "file.ext4") isa RegexMatch)
 
-URI = Parsing.WordParser[:uri][2]
+URI = Parsing.Parser[:uri][2]
 # negatives
 assert(match(URI, "HelloWorld") == nothing)
 assert(match(URI, "Hello-world") == nothing)
@@ -134,16 +134,26 @@ assert(match(URI, "214.6.139.in-addr.arpa") isa RegexMatch)
 
 # TODO: test expressions on some examples...
 
-MAC = Parsing.WordParser[:mac][2]
-IPv4 = Parsing.WordParser[:ipv4][2]
-IPv6 = Parsing.WordParser[:ipv6][2]
+MAC = Parsing.Parser[:mac][2]
+IPv4 = Parsing.Parser[:ipv4][2]
+IPv6 = Parsing.Parser[:ipv6][2]
+# positives
+assert(match(IPv6, "0:0:0:0:0:0:0:0") isa RegexMatch)
+assert(match(IPv6, "fe80::1ff:fe23:4567:890a") isa RegexMatch)
+assert(match(IPv6, "2001:0db8:85a3:0000:0000:8a2e:0370:7334") isa RegexMatch)
+assert(match(IPv6, "2001:db8:85a3:0:0:8a2e:370:7334") isa RegexMatch)
+assert(match(IPv6, "2001:db8:85a3::8a2e:370:7334") isa RegexMatch)
+assert(match(IPv6, "2001:0db8:85a3:0000:0000:8a2e:0370:7334") isa RegexMatch)
+# negatives
+assert(!(match(IPv6, "::ffff:c000:0280") isa RegexMatch))
+assert(!(match(IPv6, "::ffff:192.0.2.128") isa RegexMatch))
 
-FLOAT = Parsing.WordParser[:float][2]
-INT   = Parsing.WordParser[:int][2]
-HEX   = Parsing.WordParser[:hex][2]
+FLOAT = Parsing.Parser[:float][2]
+INT   = Parsing.Parser[:int][2]
+HEX   = Parsing.Parser[:hex][2]
 
-SYSLOG_DATETIME = Parsing.LineParser[:syslog_datetime][2]
-RCE_DATETIME = Parsing.LineParser[:rce_datetime][2]
+SYSLOG_DATETIME = Parsing.Parser[:syslog_datetime][2]
+RCE_DATETIME = Parsing.Parser[:rce_datetime][2]
 
 DATE = r"^\d{4}-\d{2}-\d{2}$"
 TIME = r"^[0-9]{2}:[0-9]{2}:[0-9]{2}$"
