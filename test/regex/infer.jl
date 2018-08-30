@@ -81,11 +81,12 @@ set = [
 
 occs = occurences(set)
 occs = common_words(occs)
-inverted_index = invert(set, :word)
+inverted_index = invert(set)
 
-for (word, cnt) in occs
-    @show inverted_index[word]
-end
+#inverted_index = invert(set), :word)
+# for (word, cnt) in occs
+#     @show inverted_index[word]
+# end
 
 froms = fill(1,length(set))
 prevs = nothing
