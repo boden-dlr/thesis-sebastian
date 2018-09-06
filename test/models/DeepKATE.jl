@@ -6,6 +6,7 @@ using Flux: throttle, crossentropy
 using Random
 using Statistics
 
+include(joinpath(pwd(), "src/neural_nets/loss.jl"))
 
 function fit_deep_kate(data::Vector{Vector{Float64}},
     seed::Integer,
@@ -20,47 +21,29 @@ function fit_deep_kate(data::Vector{Vector{Float64}},
     L = n_components
     # activate = sigmoid
 
-    lat = 5
-
-    function clamp_asin(x)
-        if x > 1
-            return asin(param(1))
-        elseif x < -1
-            return asin(param(-1))
-        else
-            return asin(x)
-        end
-    end
+    lat = 4
 
     m = Chain(
+        # Dropout(0.2),
         KATE.KCompetetive(N, 100, tanh, k=25),
         # Dense(N, 100, sin),
         Dense(100, 20, sigmoid),
-        Dropout(0.4),
+        # Dropout(0.2),
         # Dense(20, 5, sigmoid),
-        KATE.KCompetetive(20, 5, tanh, k=5),
+        KATE.KCompetetive(20, 20, tanh, k=10),
         # KATE.KCompetetive(5, L, tanh, k=L), # round(Int,L/2)),
-        Dense(5, L, sin),
+        # Dense(20, 5, sigmoid),
+        Dense(20, L, sin), # sin), #x->log(abs(x))
         # softmax,
-        Dense(L, 5, sigmoid),
-        Dense(5, 20, sigmoid),
-        Dropout(0.4),
+        Dense(L, 20, sigmoid),
+        Dense(20, 20, sigmoid),
+        # Dropout(0.4),
         Dense(20, 100, sigmoid),
+        Dropout(0.6),
         Dense(100, N, sigmoid),
         # KATE.KCompetetive(N, L, tanh, k=25),
         # Dense(L, N, sigmoid),
     )
-
-    function repel(xs, pivot=0.0)
-        for i in eachindex(xs)
-            if xs[i] >= pivot
-                xs[i] = ceil(xs[i])
-            else
-                xs[i] = floor(xs[i])
-            end
-        end
-        xs
-    end
 
     function loss(a,b,c)
         # @show length(a),length(b),length(c)
@@ -75,8 +58,8 @@ function fit_deep_kate(data::Vector{Vector{Float64}},
         embedded = m[1:lat](b)
         prediction = m[lat+1:end](embedded)
 
-        prev = Flux.mse(embedded, -target_a) # repel
-        succ = Flux.mse(embedded, -target_c) # repel
+        prev = Flux.mse(embedded, -target_a) # repel! (see neural_nets/loss.jl)
+        succ = Flux.mse(embedded, -target_c) # repel!
         ce = crossentropy(prediction, b)
         # ce = Flux.mse(prediction, b)
 
@@ -120,7 +103,7 @@ function fit_deep_kate(data::Vector{Vector{Float64}},
 end
 
 function generate(model::Flux.Chain, data::Vector{Vector{Float64}})
-    embeddings = hcat(Flux.data.(model[1:5].(data))...)
+    embeddings = hcat(Flux.data.(model[1:4].(data))...)
     generated = hcat(Flux.data.(model.(data))...)
     embeddings', generated'
 end
@@ -138,13 +121,16 @@ function reconstruction_error(in::AbstractMatrix,out::AbstractMatrix)
 end
 
 
-function scale(data::AbstractMatrix, factor=10.0, shift_to_origin=true)
+function scale(data::AbstractMatrix, factor=10.0, shift_to_origin=true, scale_by=:max)
     data = data'
     (n,m) = size(data)
-    # min_embd = [minimum(data[i,:]) for i in 1:n]
-    # max_embd = [maximum(data[i,:]) for i in 1:n]
-    min_embd = [Statistics.quantile(data[i,:], 0.2) for i in 1:n]
-    max_embd = [Statistics.quantile(data[i,:], 0.8) for i in 1:n]
+    if scale_by == :max
+        min_embd = [minimum(data[i,:]) for i in 1:n]
+        max_embd = [maximum(data[i,:]) for i in 1:n]
+    else
+        min_embd = [Statistics.quantile(data[i,:], 0.2) for i in 1:n]
+        max_embd = [Statistics.quantile(data[i,:], 0.8) for i in 1:n]
+    end
     med = [Statistics.quantile(data[i,:], 0.5) for i in 1:n]
     if shift_to_origin
         diff_embd = factor*2.0 ./ (max_embd - min_embd)
@@ -158,8 +144,11 @@ function scale(data::AbstractMatrix, factor=10.0, shift_to_origin=true)
     end
 
     if shift_to_origin
-        # data = strech * (data .- min_embd) .- factor
-        data = (strech * (data .- min_embd)) .- med
+        if scale_by == :max
+            data = strech * (data .- min_embd) .- factor
+        else
+            data = (strech * (data .- min_embd)) .- med
+        end
     else
         data = (strech * (data .- min_embd))
     end

@@ -1,5 +1,5 @@
 
-include(joinpath(pwd(),"src","layers","Parallel.jl"))
+include(joinpath(pwd(),"src","neural_nets","layers","Parallel.jl"))
 
 # using CuArrays
 using Flux
