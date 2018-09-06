@@ -1,118 +1,14 @@
-module Pattern
-
 using LogClustering.Index
 using LogClustering.Index: key
-using DataStructures: OrderedDict, Trie
-# using Compat
+using DataStructures: OrderedDict #, Trie
 
-#TODO Tuple/Array => (support, range, occs)
-# change dict in place!
-# support -> filterby
-# range -> filterby
-# occs -> store
-# deüth frist vs. breath first vs. parallel combination
+using LogClustering.EpisodeMining:
+    random_utility, local_utility, external_utility, avg_utility
 
-function grow(sequence::Array{N,1}, vertical, primer, min_sup; overlapping = false) where {N<:Number}
-    #TODO: inter vs intra overlapping...
+"""
+    A SPADE inspired depth-first search on a vertical db pseudo projection.
 
-    extended = Dict{Array{N,1},Array{Tuple{Int64,Int64},1}}()
-
-    for pattern in keys(primer)
-        # TODO: try only alphabet elems...
-        # for elem in keys(vertical) # alphabet NOTE: if unique filter by pattern elements
-        for i in 1:length(primer[pattern])-1
-            start = primer[pattern][i][2]+1
-            stop = primer[pattern][i+1][1]-1
-            for e in start:stop # TODO: try only alphabet elems...
-                vertical_s_extension = sequence[e]
-                for candidate in vertical[vertical_s_extension]
-                    if candidate >= start && candidate <= stop
-                        # @show "yeah", pattern, sequence[candidate], candidate
-                        s_extended = vcat([p for p in pattern], [sequence[candidate]])
-                        if haskey(extended, s_extended)
-                            # push!(extended[s_extended], (primer[pattern][i][1], candidate))
-                            if overlapping && !((primer[pattern][i][1], candidate) in extended[s_extended])
-                                push!(extended[s_extended], (primer[pattern][i][1], candidate))
-                            else
-                                if extended[s_extended][end][2] < i
-                                    push!(extended[s_extended], (primer[pattern][i][1], candidate))
-                                end
-                            end
-                        else
-                            extended[s_extended] = [(primer[pattern][i][1], candidate)]
-                        end
-                    end
-                end
-            end
-        end
-    end
-
-    extended = Dict(filter(kv->length(kv[2])>=min_sup, collect(extended)))
-
-    if length(extended) > 0
-        future = grow(sequence, vertical, extended, min_sup)
-        for pattern in keys(future)
-            extended[pattern] = future[pattern]
-        end
-    end
-
-    for pattern in keys(primer)
-        extended[[p for p in pattern]] = primer[pattern]
-    end
-
-    extended
-end
-
-
-# function findfirst_gte_binarysearch(gte::Int64, sorted::A)
-#     n = length(sorted)
-#     pivot::Int64 = n/2
-#     current = sorted[pivot]
-#     last = 0
-#     while current >= gte
-#         pivot = pivot/2
-
-#     end
-# end
-
-function random_utility(e)
-    rand()
-end
-
-
-function local_utility(utilities, episode)
-    u_sum = 0
-    local_max = 0
-    for e in episode
-        u = utilities[e]
-        u_sum += u
-        if u > local_max
-            local_max = u
-        end
-    end
-    u_sum / (length(episode) * local_max)
-end
-
-
-function external_utility(utilities, total_utility, episode)
-    u_sum = 0
-    for e in episode
-        u_sum += utilities[e]
-    end
-    u_sum / total_utility
-end
-
-
-function avg_utility(utilities, total_utility, total_length, episode)
-    u_sum = 0
-    for e in episode
-        u_sum += utilities[e]
-    end
-    # (u_sum / length(episode) * total_utility / len) / total_utility
-    min(1.0, (u_sum / length(episode) / total_length))
-end
-
-
+"""
 function grow_depth_first!(
     db::OrderedDict{Vector{N},Vector{Vector{N}}},
     extend::Vector{Vector{N}},
@@ -130,7 +26,7 @@ function grow_depth_first!(
     similar     = true,
     overlapping = false,
     gap         = 0, # -1 endless
-    set         = :all, # [:all, :closed, :maximal] closed vs. maximal?!
+    set         = :all, # [:all, :closed]
     # set_keys    = Set{Int64}[], # TODO: replace with sorted arrays? What performs better?
     sorted_keys = Vector{Int64}[],
     # positions   = Dict{Int64,Int64}(), # TODO: replace with an array (assignments)
@@ -159,7 +55,7 @@ function grow_depth_first!(
                 continue
             end
         end
-        
+
         if !similar
             # pattern_as_set = Set(pattern)
             # if any(s-> intersect(s, pattern_as_set) == pattern_as_set, set_keys)
@@ -192,7 +88,7 @@ function grow_depth_first!(
             end
             foundat = Vector{Int64}()
             # s_extension = vcat(pattern, s_ext)
-            s_extension = Array{Int64}(depth+2)
+            s_extension = Array{Int64}(undef, depth+2)
             s_extension[1:depth+1] = pattern
             s_extension[end] = s_ext
 
@@ -216,10 +112,10 @@ function grow_depth_first!(
                     if candidate > stop
                         break
                     end
-                    
+
                     if candidate >= start # && candidate <= stop # (implicitly)
                         # occurence = vcat(db[pattern][i], candidate)
-                        occurence = Array{Int64}(depth+2)
+                        occurence = Array{Int64}(undef, depth+2)
                         occurence[1:depth+1] = db[pattern][i]
                         occurence[end] = candidate
                         # @show s_ext, start, stop, candidate, pattern, s_extension, occurence
@@ -273,7 +169,7 @@ function grow_depth_first!(
         # TODO: closed vs. maximal patterns
         # support < or <= min_sup operator should be an option
         # NOTE: created race condition between `s_ext`s without `foundat_all``
-        if set in [:closed,:maximal]
+        if set == :closed
             # remove found occs from db[pattern]
             d = 0
             for i in sort(collect(foundat_all))
@@ -307,28 +203,13 @@ function grow_depth_first!(
 end
 
 
-function mine_recurring(sequence::Array{N,1}, min_sup::Int64 = 1) where {N<:Number}
-
-    vertical = Index.invert(sequence)
-    primer = Index.pairs(sequence, gap=0)
-
-    primer = Dict(filter(kv->length(kv[2])>=min_sup, collect(primer)))
-
-    result = grow(sequence, vertical, primer, min_sup)
-
-    Dict(filter(kv->length(kv[2])>=min_sup, collect(result)))
-
-    # DataStructures.OrderedDict(sort(result), by=kv->kv[1][1])
-end
-
-
 function generate_lookuptable(vertical::AbstractDict{Int64,Vector{Int64}}, n::Int64)
 
     m = length(vertical)
     A = sort(collect(keys(vertical)))
     V = Dict(map(ie -> ie[2] => ie[1], enumerate(A)))
     L = fill(-1,m,n)
-    
+
     for i in 1:m
         occs = vertical[A[i]]
         l = 1
@@ -347,4 +228,13 @@ function generate_lookuptable(vertical::AbstractDict{Int64,Vector{Int64}}, n::In
 end
 
 
-end # module Pattern
+# function findfirst_gte_binarysearch(gte::Int64, sorted::A)
+#     n = length(sorted)
+#     pivot::Int64 = n/2
+#     current = sorted[pivot]
+#     last = 0
+#     while current >= gte
+#         pivot = pivot/2
+
+#     end
+# end

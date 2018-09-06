@@ -1,50 +1,8 @@
 using LogClustering: Index
 
-
-function support(moSet, episode)
-    length(moSet[episode])
-end
-
-function relative_support(sequence, moSet, episode)
-    support(moSet,episode) / length(sequence)
-end
-
-function utility(utilities, episode)
-    u = 0.0
-    for event in episode
-        u = u + utilities[event] # external utility
-    end
-    u
-end
-
-function relative_utility(total_utility, utilities, episode)
-    utility(utilities, episode) / total_utility
-end
-
-function total_utility(sequence, utilities)
-    tu = 0.0
-    for event in sequence
-        tu += utilities[event]
-    end
-    tu
-end
-
-# Episode Weighted Utility
-function ewu(total_utility, utilities, episode, moSet)
-    (utility(utilities, episode) * length(moSet[episode])) / total_utility
-end
-
-# IESC (Improved estimation of EWU for S-Concatenation)
-# 
-# IESC(α) = (u(α) + u(SES(α)))/u(CES).
-# 
-function iesc(total_utility, utilities, alpha, SES)
-    (utility(utilities, alpha) + utility(utilities, SES)) / total_utility
-end
-
-# transaction/sequence weighted utility (TWU/SWU)
-# function swu()
-# end
+using LogClustering.EpisodeMining: support, relative_support
+using LogClustering.EpisodeMining: utility, relative_utility, total_utility
+using LogClustering.EpisodeMining: ewu, iesc
 
 Intervall = UnitRange{Int64}
 
@@ -69,7 +27,7 @@ function s_concatenation!(
         # SES = @view sequence[I] # Set{Int64}()
         for t in I
             moBeta::Intervall = range.start:t
-            
+
             # gap constrained
             if max_gap >= 0 && length(moBeta) > l+1+max_gap
                 break
@@ -79,7 +37,7 @@ function s_concatenation!(
                 continue
             end
 
-            beta = Vector{Int64}(l+1)
+            beta = Vector{Int64}(undef, l+1)
             beta[1:l] = prefix
             beta[end] = sequence[t] # for e in SES_t
 
@@ -126,13 +84,13 @@ function s_concatenation!(
                 else
                     # if all(r -> r.stop <= moBeta.start, moSet[beta]) # NOTE: strange that M,N generates false positives
                         push!(moSet[beta], moBeta)
-                    
+
                         # for beta in betaSet ...
                         if support(moSet, beta) >= min_sup && ewu(total_utility, utilities, beta, moSet) >= min_utililty
                             if relative_utility(total_utility, utilities, beta) >= min_utililty
                                 hueSet[beta] = moSet[beta]
                             end
-                
+
                             # TSpan condition...
                             # if IESC(α, SES) ≥ min utility then, ...
                             if support(moSet, prefix) >= min_sup && iesc(total_utility, utilities, prefix, Set{Int64}(sequence[I])) >= min_utililty
@@ -174,16 +132,16 @@ function mt_span(
     if parallel
         warn(
 """ Multi-Threading in Julia is still experimental.
-    
+
     There could be omitted prefixes due to excecution errors.
-    
+
     Make sure to `set` (Windows) `export` (Mac/Linux) the number of
     threads (number of virtual cores) for Julia in the OS environment.
-    
+
     Example (Mac/Linux):
 
         `export JULIA_NUM_THREADS=4`
-        
+
     \n
 """)
     end
@@ -198,10 +156,10 @@ function mt_span(
     for (k,v) in vertical
         supports[k] = length(v)
     end
-    vertical = filter((k,v)->length(v) >= min_support, vertical)
+    vertical = filter(kv->length(kv[2]) >= min_sup, vertical)
     moSet::Dict{Vector{Int64},Vector{Intervall}} = Dict(map(kv -> [kv[1]] => map(v -> v:v, kv[2]), collect(vertical)))
     hueSet::Dict{Vector{Int64},Vector{Intervall}} = Dict{Vector{Int64},Vector{Intervall}}()
-    
+
     tu = total_utility(sequence, utilities)
 
     # ru = tu / length(sequence)
@@ -244,7 +202,7 @@ function mt_span(
                     min_utililty,
                     tu,
                     max_repetition,
-                    max_gap)        
+                    max_gap)
             end
         end
     else
@@ -263,7 +221,7 @@ function mt_span(
                     min_utililty,
                     tu,
                     max_repetition,
-                    max_gap)        
+                    max_gap)
             end
         end
     end

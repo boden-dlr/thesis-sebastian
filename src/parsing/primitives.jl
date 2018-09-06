@@ -4,7 +4,7 @@
 using Dates
 using DataStructures: OrderedDict
 using LogClustering.Parsing: Label
-
+using Base.Meta: ParseError
 
 function parse_rce_datetime(value::AbstractString)
     Dates.DateTime(value, dateformat"yyyy-mm-dd HH:MM:SS,sss")
@@ -21,7 +21,7 @@ end
 function parse_float(value::AbstractString, decimal::Char = '.')
     value = replace(value, Regex(string("[^\\d\\",decimal,"]")) => "")
     value = replace(value, decimal => '.')
-    parse(Float64, value)
+    Base.parse(Float64, value)
 end
 
 function parse_comma_separated_float(value::AbstractString)
@@ -29,7 +29,7 @@ function parse_comma_separated_float(value::AbstractString)
 end
 
 function parse_int(value::AbstractString)
-    parse(Int64,value)
+    Base.parse(Int64, value)
 end
 
 
@@ -55,7 +55,7 @@ Parser = OrderedDict{Symbol,Tuple{Label,Regex,Function}}(
     :version      => (Label(:version), r"\b((:?(\d{1,3})\.(\d{1,3})(\.\d{1,3})?([\_\-\+\.a-zA-Z0-9]+)?))\b", identity),
     :int          => (Label(:int),     r"\b\d+\b", parse_int),
     :int_bounds   => (Label(:int),     r"(?:\b|\_)(\d+)(?=\b|\_)", parse_int),
-    
+
     :hex          => (Label(:hex),     r"\b0x[0-9A-Fa-f]+\b", identity),
     )
 

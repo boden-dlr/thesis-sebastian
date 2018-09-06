@@ -1,6 +1,10 @@
+using Test
+using DelimitedFiles
 
 # include(joinpath("..","..","src","episode_mining","mt_span.jl"))
-include(joinpath(pwd(),"src","episode_mining","mt_span.jl"))
+# include(joinpath(pwd(),"src","episode_mining","mt_span.jl"))
+using LogClustering.EpisodeMining: mt_span
+using LogClustering.Index
 
 max_duration = 8
 min_support  = 2
@@ -19,7 +23,7 @@ k = maximum(sequence)
 utilities = fill(1.0, k)
 min_utililty = 0.0
 
-data = readdlm("data/embedding/playground/2018-07-25_51750_assignments_and_reconstruction_error.csv")
+data = DelimitedFiles.readdlm("data/embedding/playground/2018-07-25_51750_assignments_and_reconstruction_error.csv")
 # min_utililty = 8.005383703975682e-5
 # min_utililty = 0.000038764
 # min_utililty = 0.00004945573
@@ -35,7 +39,7 @@ sequence = map(n->convert(Int64,n), data[:,1])
 k = maximum(sequence)
 vertical = Index.invert(sequence)
 max_sup = maximum(map(length, values(vertical)))
-utilities = Vector{Float64}(k)
+utilities = Vector{Float64}(undef, k)
 for key in keys(vertical)
     utilities[key] = max_sup+1 - length(vertical[key])
     # utilities[key] = length(vertical[key])
@@ -77,18 +81,18 @@ end
 # ts = Vector{Tuple{Vector{Int},Float64,Base.GC_Diff}}()
 # @show "total"
 # @profile
-begin
-    hueSet, moSet = @time mt_span(
-        sequence,       # ES - event sequence
-        utilities,      # external utilities per event
-        max_duration,   # maximal time duration
-        min_support,    # absolute minumum support
-        min_utililty,   # min_utililty
-        max_repetition, # maximum repetitions for each event
-        max_gap;        # maximal gap
-        verbose = false,
-        parallel = true)
-end
+# begin
+hueSet, moSet = @time mt_span(
+    sequence,       # ES - event sequence
+    utilities,      # external utilities per event
+    max_duration,   # maximal time duration
+    min_support,    # absolute minumum support
+    min_utililty,   # min_utililty
+    max_repetition, # maximum repetitions for each event
+    max_gap;        # maximal gap
+    verbose = false,
+    parallel = true)
+# end
 # secs = map(t -> t[2], ts)
 # @show indmax(secs)
 # @show minimum(secs)
