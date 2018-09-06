@@ -11,7 +11,7 @@ function invert(text::Vector{Vector{String}}, tokens::Vector{String})
     inverted_index = Dict{String,Vector{Tuple{Int64,Int64}}}()
     
     for (l,line) in enumerate(text)
-        for (w,word) in line
+        for (w,word) in enumerate(line)
             for key in tokens
                 if word == key
                     if haskey(inverted_index, key)
