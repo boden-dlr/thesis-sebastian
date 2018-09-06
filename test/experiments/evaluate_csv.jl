@@ -7,3 +7,7 @@ open(filename, "r") do
     global csv = CSV.open(file)
 end
 
+# TODO: evaluate correlations:
+#   * pearson (where possible for linear relations)
+#   * spearman (for non linear relations)
+
