@@ -51,7 +51,7 @@ function infer(
     groups = OrderedDict{Int64,OrderedSet{String}}()
     origins = OrderedDict{Int64,Vector{Int64}}()
     # TODO: where do the items from all samples have the same succesor group?
-    # try not to split into words, but into phrases until a split point occurs.
+    # try not to split into words, but into phrases until a split-point occurs.
     for s in eachindex(samples)
         for w in eachindex(samples[s])
             word  = samples[s][w]
