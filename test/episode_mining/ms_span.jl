@@ -38,7 +38,8 @@ options = OrderedDict(
     :unique_n        => 1,
     :similar         => true,
     :overlapping     => false,
-    :gap             => -1,
+    :gap             => 0, # -1 endless
+    :mtd             => 1,
     :set             => :all)
 
 # data = readcsv("data/kate/51750S_6154V_148N_3K_15E_1234seed_embedded_KATE_clustered_kmeans_51750P_300k.csv")
@@ -49,10 +50,6 @@ options = OrderedDict(
 # sequence = reverse(sequence)
 # sequence = reverse(sequence)
 # consequents = [5]
-
-# TODO:NOTE: JULIA BUG in OrderedDict!
-# vertical = OrderedDict(sort(Index.invert(sequence)))
-
 
 vertical = Index.invert(sequence)
 alphabet = map(kv->kv[1], sort(collect(vertical),
@@ -68,10 +65,11 @@ total_utility = sum(e->utilities[e], sequence)
 
 # alphabet = [5]
 # alphabet = [11,72,119,276]
+# alphabet = [701]
 # vertical_pairs = Index.pairs(sequence, gap=gap)
 # pairs = collect(keys(vertical_pairs))
 
-vertical = filter((k,v)->length(v) >= options[:min_sup], vertical)
+vertical = filter(kv->length(kv[2]) >= options[:min_sup], vertical)
 alphabet = map(kv->kv[1], sort(collect(vertical),
                                by = kv -> length(kv[2]),
                                rev=true))
@@ -134,6 +132,7 @@ function test_grow_depth_first(vertical, alphabet)
                 similar = options[:similar],
                 overlapping = options[:overlapping],
                 gap = options[:gap],
+                mtd = options[:mtd],
                 set = options[:set],
             )
         else
@@ -155,6 +154,7 @@ function test_grow_depth_first(vertical, alphabet)
                 similar = options[:similar],
                 overlapping = options[:overlapping],
                 gap = options[:gap],
+                mtd = options[:mtd],
                 set = options[:set],
             )
 

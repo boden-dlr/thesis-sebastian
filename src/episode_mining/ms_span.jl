@@ -26,6 +26,7 @@ function grow_depth_first!(
     similar     = true,
     overlapping = false,
     gap         = 0, # -1 endless
+    mtd         = 0, # max_time_duration
     set         = :all, # [:all, :closed]
     # set_keys    = Set{Int64}[], # TODO: replace with sorted arrays? What performs better?
     sorted_keys = Vector{Int64}[],
@@ -35,6 +36,11 @@ function grow_depth_first!(
     # shared_db = SharedVector{Tuple{Vector{N},Tuple{Int64,Vector{Tuple{Int64,Int64}},Vector{Vector{N}}}}}(P*A)
 
     for pattern in extend # patterns
+
+        if length(pattern) > mtd
+            continue
+        end
+
         support = length(db[pattern])
         # @show support, pattern
         if support < min_sup
@@ -154,6 +160,7 @@ function grow_depth_first!(
                     similar = similar,
                     overlapping = overlapping,
                     gap = gap,
+                    mtd = mtd,
                     set = set,
                     # set_keys = set_keys,
                     sorted_keys = sorted_keys,
@@ -191,13 +198,13 @@ function grow_depth_first!(
     end
 
     # filter 1-event episodes
-    if depth == 0
-        for k in keys(db)
-            if length(k) == 1
-                delete!(db, k)
-            end
-        end
-    end
+    # if depth == 0
+    #     for k in keys(db)
+    #         if length(k) == 1
+    #             delete!(db, k)
+    #         end
+    #     end
+    # end
 
     db
 end
