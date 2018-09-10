@@ -14,8 +14,8 @@ module EpisodeMining
     export grow, mine_recurring
 
     # HUEM
-    include("ms_span.jl")
-    export grow_depth_first!;
+    include("mv_span.jl")
+    export mv_span, grow_depth_first!;
 
     include("mt_span.jl")
     export mt_span, s_concatenation;
