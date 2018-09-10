@@ -34,7 +34,7 @@ options = OrderedDict(
     :utility_measure => nothing,    #:external :local :average
     :min_utility     => 0.000025,   # external:0.000025, local:0.999, :average=0.1-0.05,
     :min_sup         => 1,
-    :max_rep         => 0,          # n < 1 --> endless
+    :max_rep         => 1,          # n < 1 --> endless
     # :similar         => true,
     :max_gap         => 0,          # n = -1 --> endless
     :max_td          => -1,         # n = -1 --> endless
@@ -72,7 +72,6 @@ vertical = filter(kv->length(kv[2]) >= options[:min_sup], vertical)
 alphabet = map(kv->kv[1], sort(collect(vertical),
                                by = kv -> length(kv[2]),
                                rev=true))
-@show alphabet
 
 
 function test_grow_depth_first(vertical, alphabet)
@@ -82,7 +81,7 @@ function test_grow_depth_first(vertical, alphabet)
     timing = Vector()
     first = true
     # Profile.clear()
-    for _ in 1:10
+    for _ in 1:1
         # db = OrderedDict{Vector{Int64},Vector{Vector{Int64}}}()
         # for (key,rs) in collect(vertical_pairs)
         #     S = length(rs)
