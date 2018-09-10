@@ -1,4 +1,4 @@
-using LogClustering: NLP
+using LogClustering.NLP
 using LogClustering.Parsing: Label, LogAttr, EventLog
 
 
