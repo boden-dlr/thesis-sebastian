@@ -1,7 +1,6 @@
 module Sparse
 
 using Flux
-using Flux: treelike
 
 mutable struct MultiChar{A,L,K}
     in::A
@@ -28,8 +27,8 @@ function MultiChar(
     join = LSTM(in * m, out)
     # layers = map(i-> LSTM(a, m), 1:in)
     # join = LSTM(in * m, out)
-    
-    @show typeof(L)
+
+    # @show typeof(L)
     # MultiChar(in, out, n, a, m, layers, join, σ, active)
     MultiChar(in, out, a, m, layers, join, active)
 end
@@ -41,7 +40,7 @@ function (m::MultiChar)(xs)
     join(js)
 end
 
-treelike(MultiChar)
+Flux.@treelike MultiChar
 
 
 # m = MultiChar(11, 5, 20)

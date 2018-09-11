@@ -1,7 +1,9 @@
-module NeuralNet
+module NeuralNets
 
     # LSTMs
     include("layers/Parallel.jl")
+    include("layers/KATE.jl")
+    include("layers/Sparse.jl")
 
     # activation functions
     include("activations.jl")
