@@ -57,7 +57,7 @@ function s_concatenation!(
                 moSet[beta] = Int64[]
             end
 
-            # M = { mo | if is mo subset of moBeta }
+            # M = { mo | if mo is subset of moBeta }
             M = Vector{Intervall}()
             for mo in moSet[beta]
                 if mo.start >= moBeta.start && mo.stop <= moBeta.stop # most time is spend here...
@@ -83,32 +83,32 @@ function s_concatenation!(
                     push!(moSet[beta], moBeta)
                 else
                     # if all(r -> r.stop <= moBeta.start, moSet[beta]) # NOTE: strange that M,N generates false positives
-                        push!(moSet[beta], moBeta)
+                    push!(moSet[beta], moBeta)
 
-                        # for beta in betaSet ...
-                        if support(moSet, beta) >= min_sup && ewu(total_utility, utilities, beta, moSet) >= min_utililty
-                            if relative_utility(total_utility, utilities, beta) >= min_utililty
-                                hueSet[beta] = moSet[beta]
-                            end
-
-                            # TSpan condition...
-                            # if IESC(α, SES) ≥ min utility then, ...
-                            if support(moSet, prefix) >= min_sup && iesc(total_utility, utilities, prefix, Set{Int64}(sequence[I])) >= min_utililty
-                                s_concatenation!(
-                                    sequence,
-                                    supports,
-                                    utilities,
-                                    beta,
-                                    moSet,
-                                    hueSet,
-                                    max_time_duration,
-                                    min_sup,
-                                    min_utililty,
-                                    total_utility,
-                                    max_repetition,
-                                    max_gap)
-                            end
+                    # for beta in betaSet ...
+                    if support(moSet, beta) >= min_sup && ewu(total_utility, utilities, beta, moSet) >= min_utililty
+                        if relative_utility(total_utility, utilities, beta) >= min_utililty
+                            hueSet[beta] = moSet[beta]
                         end
+
+                        # TSpan condition...
+                        # if IESC(α, SES) ≥ min utility then, ...
+                        if support(moSet, prefix) >= min_sup && iesc(total_utility, utilities, prefix, Set{Int64}(sequence[I])) >= min_utililty
+                            s_concatenation!(
+                                sequence,
+                                supports,
+                                utilities,
+                                beta,
+                                moSet,
+                                hueSet,
+                                max_time_duration,
+                                min_sup,
+                                min_utililty,
+                                total_utility,
+                                max_repetition,
+                                max_gap)
+                        end
+                    end
                     # end
                 end
             end
