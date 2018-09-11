@@ -1,12 +1,13 @@
-using Base.Test
+using Test
 
 using Memoize
-using LogClustering.NLP, LogClustering.KATE
-using LogClustering.KATE: KCompetetive
+using LogClustering.NLP
+using LogClustering.NeuralNets.KATE
+using LogClustering.NeuralNets.KATE: KCompetetive
 
 using Flux
 using Flux: throttle, crossentropy, mse, testmode!, data #, binarycrossentropy
-using NNlib: relu, leakyrelu
+using Flux: relu, leakyrelu
 using Juno: @progress
 using Plots
 gr()

@@ -372,7 +372,7 @@ function tokenize(lines::Array{String};
     lines_reduced = filter(line -> length(line) != 0, lines_splitted)
 
     # @show length(lines_splitted), typeof(lines_splitted)
-    if isnull(limit)
+    if limit == nothing
         lines_limited = lines_reduced
     else
         lines_limited = lines_reduced[1:limit.value]
@@ -383,8 +383,8 @@ function tokenize(lines::Array{String};
     end
     # @show lines_limited
     # @show length(lines_limited), typeof(lines_limited)
-    ts = NLP.terms(lines_limited)
-    termcount = count_terms(lines_limited, terms=ts)
+    # ts = NLP.terms(lines_limited)
+    termcount = count_terms(lines_limited) #, terms=ts)
     # for elem in termcount
     #     @show elem
     # end
