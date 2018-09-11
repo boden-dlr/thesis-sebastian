@@ -189,7 +189,7 @@ function mt_span(
                 info("tu:     ", tu)
             end
 
-            if iesc(tu, utilities, prefix, prefix) >= min_utililty # support(moSet, prefix) >= min_sup &&
+            if support(moSet, prefix) >= min_sup && iesc(tu, utilities, prefix, prefix) >= min_utililty
                 s_concatenation!(
                     sequence,
                     supports,
@@ -208,7 +208,7 @@ function mt_span(
     else
         Threads.@threads for i = 1:length(prefixes)
             prefix = prefixes[i]
-            if iesc(tu, utilities, prefix, prefix) >= min_utililty # support(moSet, prefix) >= min_sup &&
+            if support(moSet, prefix) >= min_sup && iesc(tu, utilities, prefix, prefix) >= min_utililty
                 s_concatenation!(
                     sequence,
                     supports,
