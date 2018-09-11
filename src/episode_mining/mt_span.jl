@@ -141,8 +141,7 @@ function mt_span(
     Example (Mac/Linux):
 
         `export JULIA_NUM_THREADS=4`
-
-    \n
+    
 """)
     end
 
