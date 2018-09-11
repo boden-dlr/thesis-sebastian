@@ -82,7 +82,7 @@ end
 # @show "total"
 # @profile
 # begin
-hueSet, moSet = @time mt_span(
+moSet, hueSet = @time mt_span(
     sequence,       # ES - event sequence
     utilities,      # external utilities per event
     max_duration,   # maximal time duration

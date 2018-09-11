@@ -125,7 +125,7 @@ function mt_span(
     min_utililty::Float64 = 0.0,
     max_repetition::Int64 = -1,
     max_gap::Int64 = -1;
-    prefixes::Union{Symbol,Vector{Int64}} = :all,
+    prefixes::Union{Symbol,Vector{Vector{Int64}}} = :all,
     verbose::Bool = false,
     parallel::Bool = false)
 
@@ -231,5 +231,5 @@ function mt_span(
         @show length(hueSet)
     end
 
-    hueSet, moSet
+    moSet, hueSet
 end
