@@ -38,7 +38,7 @@ mutable struct Group
     words::OrderedSet{String}
     quantifier::UnitRange{Int}
 
-    Group() = begin 
+    Group() = begin
         new(OrderedSet{String}(), 1:0)
     end
 end
@@ -56,7 +56,7 @@ function group_until_fix_word_occurs(source, fixed, mlm)
                     push!(groups[i].words, word)
                 end
             else
-                
+
                 # TODO: count until mutable...
                 # if i <= length(groups)
                 #     start = groups[i].quantifier.start
@@ -81,9 +81,9 @@ function filter_by_occurence_per_sample(set::Vector{Vector{String}})
 
 end
 
-text = [
-    ["%RCE_DATETIME%","DEBUG","-","%URI%","-","ServiceEvent","REGISTERED","-","{%URI%}={%URI%=Parametric","Study,","%URI%=true,","%URI%=%FLOAT%,","%URI%=parametric_study%INT%.png,","%URI%=Evaluation,","%URI%=[%URI%,%URI%.ParametricStudyComponent_Parametric","Study],","%FILE%,","%URI%=%URI%,","%URI%=true,","%FILE%,","%URI%=%URI%,","%URI%=%INT%,","%URI%=Parametric","Study,","%URI%=%URI%,","%URI%=parametric_study%INT%.png,","%FILE%,","%URI%=%INT%}","-","%URI%"],
-    ["%RCE_DATETIME%","DEBUG","-","%URI%","-","ServiceEvent","UNREGISTERING","-","{%URI%}={%URI%=Parametric","Study,","%URI%=true,","%URI%=%FLOAT%,","%URI%=parametric_study%INT%.png,","%URI%=Evaluation,","%URI%=[%URI%,%URI%.ParametricStudyComponent_Parametric","Study],","%FILE%,","%URI%=%URI%,","%URI%=true,","%FILE%,","%URI%=%URI%,","%URI%=%INT%,","%URI%=Parametric","Study,","%URI%=%URI%,","%URI%=parametric_study%INT%.png,","%FILE%,","%URI%=%INT%}","-","%URI%"],
-]
-
-filter_by_occurence_per_sample(text)
+# text = [
+#     ["%RCE_DATETIME%","DEBUG","-","%URI%","-","ServiceEvent","REGISTERED","-","{%URI%}={%URI%=Parametric","Study,","%URI%=true,","%URI%=%FLOAT%,","%URI%=parametric_study%INT%.png,","%URI%=Evaluation,","%URI%=[%URI%,%URI%.ParametricStudyComponent_Parametric","Study],","%FILE%,","%URI%=%URI%,","%URI%=true,","%FILE%,","%URI%=%URI%,","%URI%=%INT%,","%URI%=Parametric","Study,","%URI%=%URI%,","%URI%=parametric_study%INT%.png,","%FILE%,","%URI%=%INT%}","-","%URI%"],
+#     ["%RCE_DATETIME%","DEBUG","-","%URI%","-","ServiceEvent","UNREGISTERING","-","{%URI%}={%URI%=Parametric","Study,","%URI%=true,","%URI%=%FLOAT%,","%URI%=parametric_study%INT%.png,","%URI%=Evaluation,","%URI%=[%URI%,%URI%.ParametricStudyComponent_Parametric","Study],","%FILE%,","%URI%=%URI%,","%URI%=true,","%FILE%,","%URI%=%URI%,","%URI%=%INT%,","%URI%=Parametric","Study,","%URI%=%URI%,","%URI%=parametric_study%INT%.png,","%FILE%,","%URI%=%INT%}","-","%URI%"],
+# ]
+#
+# filter_by_occurence_per_sample(text)
