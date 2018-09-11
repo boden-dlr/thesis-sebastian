@@ -1,5 +1,5 @@
 using Flux
-using Flux: treelike, Recur, _truncate, prefor, glorot_uniform, initn, gate
+using Flux: Recur, _truncate, prefor, glorot_uniform, initn, gate
 
 function average(mapped)
     D = mapped[1]
@@ -49,7 +49,7 @@ function (p::Parallel)(xs)
     reduce(mapped)
 end
 
-treelike(Parallel)
+Flux.@treelike Parallel
 
 function _prefor_truncate(x)
     if x isa Recur
@@ -187,7 +187,7 @@ end
 
 Flux.hidden(m::PeepholeLSTMCell) = (m.h, m.c)
 
-treelike(PeepholeLSTMCell)
+Flux.@treelike PeepholeLSTMCell
 
 Base.show(io::IO, l::PeepholeLSTMCell) =
     print(io, "PeepholeLSTMCell(", size(l.Wx, 2), ", ", size(l.Wx, 1)÷4, ")")
