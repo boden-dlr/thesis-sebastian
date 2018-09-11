@@ -6,8 +6,9 @@
 # install python packages
 using Conda
 Conda.add("scikit-learn")
-#Conda.add("ipykernel")
 Conda.add("gensim")
+Conda.add("PyQt5")
+#Conda.add("ipykernel")
 
 # add current path to Python
 #ENV["PYTHON"] = Conda.PYTHONDIR
