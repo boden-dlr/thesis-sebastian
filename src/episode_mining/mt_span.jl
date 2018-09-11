@@ -130,8 +130,7 @@ function mt_span(
     parallel::Bool = false)
 
     if parallel
-        warn(
-""" Multi-Threading in Julia is still experimental.
+        @warn """ Multi-Threading in Julia is still experimental.
 
     There could be omitted prefixes due to excecution errors.
 
@@ -141,12 +140,12 @@ function mt_span(
     Example (Mac/Linux):
 
         `export JULIA_NUM_THREADS=4`
-    
-""")
+
+"""
     end
 
     if max_gap > max_time_duration
-        warn("max_gap > max_time_duration has no effect.")
+        @warn "max_gap > max_time_duration has no effect."
     end
 
     vertical::Dict{Int,Vector{Int64}} = Index.invert(sequence)
