@@ -16,6 +16,12 @@ git-tree-sha1 = "5b046410fb617d9cf2f8bc0edd5da05a2e5a2ad4"
 uuid = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
 version = "0.2.3"
 
+[[BSON]]
+deps = ["Test"]
+git-tree-sha1 = "e8a82d42350074078999e7074efcf2d2cb759976"
+uuid = "fbb218c0-5317-5bc6-957e-2ee96dd4b1f0"
+version = "0.2.0"
+
 [[Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
