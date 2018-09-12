@@ -293,7 +293,7 @@ function mv_span(
         total_utility       = total_utility,
         min_utility         = min_utility,
         min_sup             = min_sup,
-        max_repetitions     = max_repetitions,
+        max_repetitions     = max_repetitions+1,
         overlapping         = !min_occurrences,
         max_gap             = max_gap,
         max_time_duration   = max_time_duration,
