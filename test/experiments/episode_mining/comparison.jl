@@ -38,7 +38,7 @@ function test()
         :max_time_duration => 20)
 
     for e in [4,10,100]
-        for n in [100_000]# 10,100,1_000,10_000]
+        for n in [20_000]# 10,100,1_000,10_000]
 
         sequence = rand(1:e, n)
         utilities_dict, utilities_array = ones_utilities(sequence)
@@ -78,7 +78,7 @@ end
 
 bs, ops = test()
 
-global df = nothing
+df = nothing
 for (k,t) in bs
     values = OrderedDict(
         :alg => k[1],
@@ -101,10 +101,10 @@ for (k,t) in bs
         values[ok] = ov
     end
     if df == nothing
-        df = DataFrame(values)
+        global df = DataFrame(values)
     else
         push!(df, values)
     end
 end
 
-CSV.write("data/experiments/episode-mining/benchmarks_mv_vs_mt_100_000.csv", df)
+CSV.write("data/experiments/episode-mining/benchmarks_mv_vs_mt_20_000.csv", df)
