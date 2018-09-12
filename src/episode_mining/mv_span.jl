@@ -299,5 +299,14 @@ function mv_span(
         max_time_duration   = max_time_duration,
         set                 = result_set)
 
+    # filter 1-event episodes
+    if min_occurrences
+        for k in keys(db)
+            if length(k) == 1
+                delete!(db, k)
+            end
+        end
+    end
+
     return db
 end
