@@ -29,19 +29,19 @@ end
 
 function test()
     bs = OrderedDict{Any,BenchmarkTools.Trial}()
+
+    options = OrderedDict(
+        :min_sup           => 2,
+        :min_utility       => 0.0,
+        :max_reps          => 2,
+        :max_gap           => 0,
+        :max_time_duration => 20)
+
     for e in [4,10,100]
-        for n in [10,100,1_000,10_000]
+        for n in [100_000]# 10,100,1_000,10_000]
 
         sequence = rand(1:e, n)
         utilities_dict, utilities_array = ones_utilities(sequence)
-
-        options = OrderedDict(
-            :min_sup           => 2,
-            :min_utility       => 0.0,
-            :max_reps          => 2,
-            :max_gap           => 0,
-            :max_time_duration => 20)
-
 
         bs[(:mv_span,e,n)] = @benchmark begin
         # mv_hueSet =
@@ -97,6 +97,9 @@ for (k,t) in bs
         :memory_GiB => ceil(Int,memory(t) / 1024^3),
         :allocs => allocs(t),
         :params => params(t))
+    for (ok,ov) in ops
+        values[ok] = ov
+    end
     if df == nothing
         df = DataFrame(values)
     else
@@ -104,4 +107,4 @@ for (k,t) in bs
     end
 end
 
-CSV.write("data/experiments/episode-mining/benchmarks_mv_vs_mt.csv", df)
+CSV.write("data/experiments/episode-mining/benchmarks_mv_vs_mt_100_000.csv", df)
