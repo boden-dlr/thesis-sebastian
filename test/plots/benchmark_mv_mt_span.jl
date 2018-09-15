@@ -19,10 +19,9 @@ function get_run(alg::String, e::Int, df = df)
     end
     # make MiB
     q[:memory_mib] = q[:memory] / 1024^2
-    q[:allocs_k] = q[:allocs] / 1000
+    # q[:allocs_k] = q[:allocs] / 1000
     q
 end
-
 
 label_p = nothing
 time_p = nothing
@@ -50,7 +49,7 @@ for alg in ["mv_span", "mt_span"]
         style = alg == "mv_span" ? :solid : :dash
         line = (style,1)
         xscale = :log10
-        yscale = :log10
+        yaxis = :log10#, (10^-5,Inf))
         # leg = :topleft
         leg = :none
 
@@ -59,12 +58,12 @@ for alg in ["mv_span", "mt_span"]
         l_alg = alg == "mv_span" ? "MV-Span" : "MT-Span"
         label = "$l_alg ($e event types) "
 
-        function plot_initial(y::Symbol, title::String, ylabel::String)
+        function plot_initial(y::Symbol, title::String, ylabel::String, yaxis=yaxis)
             plot(r[:n], r[y],
                 title = title,
                 xlabel=xlabel, ylabel=ylabel, label=label,
                 # yticks=7,
-                xscale=xscale, yscale=yscale, leg=leg,
+                xscale=xscale, yaxis=yaxis, leg=leg,
                 line=line, color=color)
                 # marker=marker, markersize=markersize)
         end
@@ -72,8 +71,8 @@ for alg in ["mv_span", "mt_span"]
         if time_p == nothing
             global time_p = plot_initial(:time_s, "runtime", "time in s")
             global memory_p = plot_initial(:memory_mib, "memory", "memory in MiB\n(1024^2)")
-            global allocs_p = plot_initial(:allocs_k, "allocations", "allocations in k\n(1000)")
-            # global gctime_p = plot_initial(:gctime, "garbage collection time", "time in s")
+            global allocs_p = plot_initial(:allocs, "allocations", "allocations")
+            global gctime_p = plot_initial(:gctime, "garbage collection time", "time in s", (:log, (10^-1,Inf)))
         else
             plot!(time_p, r[:n], r[:time_s],
                 label=label,
@@ -87,7 +86,9 @@ for alg in ["mv_span", "mt_span"]
                 label=label,
                 line=line, color=color)
                 # , marker=marker, markersize=markersize)
-            # plot!(gctime_p, r[:n], r[:gctime], label=label, line=line, color=color)
+            plot!(gctime_p, r[:n], r[:gctime],
+                label=label,
+                line=line, color=color)
         end
 
         global label_p = plot(deepcopy(time_p),
@@ -106,14 +107,17 @@ time_final = plot_together(time_p, label_p, [0.5, 0.5])
 memory_final = plot_together(memory_p, label_p)
 allocs_final = plot_together(allocs_p, label_p)
 mem_allocs_final = plot_together(memory_p, allocs_p, [0.5, 0.5])
-# gctime_final = plot_together(gctime_p, label_p)
+mem_gctime_final = plot_together(memory_p, gctime_p, [0.5, 0.5])
+gctime_final = plot_together(gctime_p, label_p)
+
 all_togther = plot(time_final, mem_allocs_final, layout=grid(2,1))
 
 savefig(time_final,         "data/plots/benchmark_mv_mt_time.pdf")
 savefig(memory_final,       "data/plots/benchmark_mv_mt_memory.pdf")
 savefig(allocs_final,       "data/plots/benchmark_mv_mt_allocs.pdf")
-# savefig(gctime_final,       "data/plots/benchmark_mv_mt_gctime.pdf")
+savefig(gctime_final,       "data/plots/benchmark_mv_mt_gctime.pdf")
 savefig(mem_allocs_final,   "data/plots/benchmark_mv_mt_memory_allocs.pdf")
+savefig(mem_allocs_final,   "data/plots/benchmark_mv_mt_memory_gctime.pdf")
 savefig(all_togther,        "data/plots/benchmark_mv_mt_all.pdf")
 
 display(all_togther)
