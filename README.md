@@ -7,10 +7,13 @@ This project consists of different tools and models for:
     * clustering low dimensional data (DBSCAN)
     * anomaly detection by reconstruction error
     * serial episode mining (MV-Span, MT-Span)
-        * serial episode rules mining
-    * sequential neural net models (LSTM, peephole LSTSM, Bi-LSTM)
+        * serial episode rule mining
+    * recurrent neural net models (LSTM, peephole LSTSM, Bi-LSTM)
 
 ## Install
+
+The project is written for julia `v0.7` and should be compatible for `v1.0` with
+some minor refactoring (package updates and imports).
 
 ### make the project locally available
 
@@ -52,6 +55,10 @@ or make the package available for the standard environment:
 
 ## Structure
 
+Datasets and Results of experiments (import from archived datasets and `data` folder):
+
+    data/
+
 Package source code:
 
     src/
@@ -63,9 +70,9 @@ Package source code:
         parsing/            # Event-Log parser
         regexp/             # Regular-Expression inference
         serialize/          # serialization for dictionaries
-        validation/         # CVIs & crossvalidation
+        validation/         # CVIs and crossvalidation
 
-Tests, Models, Experiments and Playground:
+Tests, Models, Experiments, Notebooks and Playground:
 
     test/
         clustering/         # dbscan, k-means, fuzzy-c-means
