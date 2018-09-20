@@ -29,22 +29,24 @@ memory_p = nothing
 allocs_p = nothing
 gctime_p = nothing
 for alg in ["mv_span", "mt_span"]
-    for e in [4,10,100,1000]
+    for e in [4,10,100,1000,10000]
         r = get_run(alg, e)
 
         colors = Dict(
             4    => :orange,
             10   => :red,
             100  => :purple,
-            1000 => :blue)
+            1000 => :blue,
+            10000 => :black)
         color = colors[e]
 
-        markers = Dict(
-            4    => :circle,
-            10   => :rect,
-            100  => :star5,
-            1000 => :diamond)
-        marker = markers[e]
+        # markers = Dict(
+        #     4    => :circle,
+        #     10   => :rect,
+        #     100  => :star5,
+        #     1000 => :diamond,
+        #     10000 => :black)
+        # marker = markers[e]
         markersize = 1
         style = alg == "mv_span" ? :solid : :dash
         line = (style,1)
