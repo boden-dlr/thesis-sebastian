@@ -24,9 +24,9 @@ version = "0.1.0"
 
 [[BSON]]
 deps = ["Test"]
-git-tree-sha1 = "e8a82d42350074078999e7074efcf2d2cb759976"
+git-tree-sha1 = "922b43e731601b73f0e53f1cc94ea719b94f673a"
 uuid = "fbb218c0-5317-5bc6-957e-2ee96dd4b1f0"
-version = "0.2.0"
+version = "0.2.1"
 
 [[Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
@@ -81,9 +81,9 @@ version = "0.5.0"
 
 [[ColorTypes]]
 deps = ["FixedPointNumbers", "Random", "Test"]
-git-tree-sha1 = "0e3209ba7418aed732e5c3818076b4400ee36c08"
+git-tree-sha1 = "f73b0e10f2a5756de7019818a41654686da06b09"
 uuid = "3da002f7-5984-5a60-b8a6-cbb66c0b333f"
-version = "0.7.4"
+version = "0.7.5"
 
 [[Colors]]
 deps = ["ColorTypes", "FixedPointNumbers", "InteractiveUtils", "Pkg", "Printf", "Reexport", "Test"]
@@ -244,9 +244,9 @@ version = "0.2.2"
 
 [[IJulia]]
 deps = ["Base64", "Compat", "Conda", "Dates", "InteractiveUtils", "JSON", "Markdown", "MbedTLS", "Pkg", "Printf", "REPL", "Random", "SoftGlobalScope", "Test", "UUIDs", "ZMQ"]
-git-tree-sha1 = "8d8d9ffa9220ac6028be3829c8013a59fa8fa2a9"
+git-tree-sha1 = "a4696d3b0153be227669db080e2c36ebce59ed88"
 uuid = "7073ff75-c697-5162-941a-fcdaad2a7d2a"
-version = "1.11.1"
+version = "1.12.0"
 
 [[IniFile]]
 deps = ["Test"]
@@ -434,9 +434,9 @@ version = "0.5.4"
 
 [[PlotlyBase]]
 deps = ["Dates", "DelimitedFiles", "DocStringExtensions", "JSON", "LaTeXStrings", "Requires", "Statistics", "Test", "UUIDs"]
-git-tree-sha1 = "e0d6ca3c4ccf9291d12450f7c616912db9ca6b92"
+git-tree-sha1 = "310d954da14daf6c5655197972e88a839930e0c9"
 uuid = "a03496cd-edff-5a9b-9e67-9cda94a718b5"
-version = "0.2.2"
+version = "0.2.3"
 
 [[PlotlyJS]]
 deps = ["Blink", "Compat", "DelimitedFiles", "JSExpr", "JSON", "Markdown", "Pkg", "PlotlyBase", "REPL", "Reexport", "Requires", "Test", "WebIO"]
@@ -541,9 +541,9 @@ uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
 
 [[SoftGlobalScope]]
 deps = ["Test"]
-git-tree-sha1 = "23d629bec59e1d21670331cc5eeb8f488b98ae2c"
+git-tree-sha1 = "97f6dfcf612b9a7260fde44170725d9ea34b1431"
 uuid = "b85f4697-e234-5449-a836-ec8e2f98b302"
-version = "1.0.5"
+version = "1.0.7"
 
 [[SortingAlgorithms]]
 deps = ["DataStructures", "Random", "Test"]
@@ -594,10 +594,10 @@ deps = ["Libdl", "LinearAlgebra", "SparseArrays"]
 uuid = "4607b0f0-06f3-5cda-b6b1-a6196a1729e9"
 
 [[TableShowUtils]]
-deps = ["Markdown", "Test"]
-git-tree-sha1 = "9646878d3e4a5e3be884d05b19ce15dbecd72b0a"
+deps = ["DataValues", "Dates", "JSON", "Markdown", "Test"]
+git-tree-sha1 = "7295e0ed103c41e71e0a893685090816527350ec"
 uuid = "5e66a065-1f0a-5976-b372-e0b8c017ca10"
-version = "0.1.1"
+version = "0.2.0"
 
 [[TableTraits]]
 deps = ["IteratorInterfaceExtensions", "Test"]
@@ -642,9 +642,9 @@ version = "1.1.2"
 
 [[WeakRefStrings]]
 deps = ["Missings", "Random", "Test"]
-git-tree-sha1 = "d4631352d65840254d33ab703e2de3d9768cdb77"
+git-tree-sha1 = "1087e8be380f2c8b96434b02bb1150fc1c511135"
 uuid = "ea10d353-3f73-51f8-a26c-33c1cb351aa5"
-version = "0.5.2"
+version = "0.5.3"
 
 [[WebIO]]
 deps = ["AssetRegistry", "Base64", "Compat", "Dates", "FunctionalCollections", "JSON", "Observables", "Pkg", "Random", "Requires", "Sockets", "Test", "UUIDs", "Widgets"]
@@ -654,9 +654,9 @@ version = "0.3.4"
 
 [[WebSockets]]
 deps = ["Base64", "Dates", "Distributed", "HTTP", "MbedTLS", "Pkg", "Random", "Sockets", "Test"]
-git-tree-sha1 = "ba1baf9b1943d3d6e3f1379c04de2760f4f9da78"
+git-tree-sha1 = "3c6ecaf54a03e05ce3edb77a3da4e793bfe59a8e"
 uuid = "104b5d7c-a370-577a-8038-80a2059c5097"
-version = "1.0.0"
+version = "1.0.1"
 
 [[Widgets]]
 deps = ["DataStructures", "Observables", "Pkg", "Test"]
