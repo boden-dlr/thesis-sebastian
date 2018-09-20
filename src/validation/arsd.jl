@@ -1,5 +1,11 @@
+#
+# AR_SD Index:
+#   R. Riyaz und M. A. Wani, „A new cluster validity index using maximum cluster spread based compactness measure“, Int Jnl of Intel Comp & Cyber, Bd. 9, Nr. 2, S. 179–204, Juni 2016.
+#
+# NOTE: the index is not stable and it is not made clear in the paper how to
+# handle certain exceptional cases (like div by null or values x < 0 or x > 1).
+#
 using Distances
-
 
 """
 maximum diameter (md)
@@ -73,7 +79,7 @@ function dm_clusters(data::AbstractMatrix, clustering::Vector{Vector{Int}})
         cluster = clustering[k]
         rs = [1:k-1...]
         rest = vcat(clustering[rs]...)
-        
+
         cp = @views data[cluster, :]'
         rp = @views data[rest, :]'
 
