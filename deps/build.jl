@@ -4,8 +4,11 @@
 # push!(LOAD_PATH, "path/to/local/julia/projects")
 
 # install python packages
+@info "install python packages with Conda"
 using Conda
+@info "add scikit-learn"
 Conda.add("scikit-learn")
+@info "add gensim"
 Conda.add("gensim")
 #Conda.add("PyQt5")
 #Conda.add("ipykernel")
