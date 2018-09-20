@@ -6,7 +6,7 @@ module LogClustering
     include("Sequence.jl")
     include("Index.jl")
     include("NLP.jl")
-    include("RegExp.jl")
+    include("regexp/RegExp.jl")
     include("episode_mining/EpisodeMining.jl")
     include("ETL.jl")
     include("Log.jl")

@@ -8,7 +8,7 @@ function escape(s::AbstractString)
     positions = map(
         substr->substr.offset,
         matchall(r"[\^\$\|\-\,\.\:\*\+\?\!\=\\\(\)\[\]\{\}]", s))
-    
+
     splitted = Vector{AbstractString}()
     last = 1
     for pos in positions
@@ -36,7 +36,7 @@ function infer(
         if length(sample) > max
             max = length(sample)
         end
-    end  
+    end
 
     function push_word!(set, word)
         if replacements != nothing && any(p->contains(word, p), replacements) #haskey(replacements, word)
@@ -78,13 +78,12 @@ function infer(
     end
 
     joined = strip(join(joins))
-    
+
     if regex
         try return Regex(joined) catch; warn(joined) end
     else
         return joined
     end
 end
-
 
 end # module RegExp

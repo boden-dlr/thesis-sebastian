@@ -26,8 +26,8 @@ for line in set
 end
 
 set = [
-    String["%RCEDATETIME%", " ", "DEBUG", " ", "-", " ", "de", ".", "rcenvironment", ".", "core", ".", "communication", ".", "transport", ".", "jms", ".", "activemq", ".", "internal", ".", "ActiveMQConnectionFilterPlugin", " ", "-", " ", "Accepting", " ", "TCP"," ", "JMS", " ", "connection", " ", "from", " ", "%IPv4%"],
-    String["%RCEDATETIME%", " ", "DEBUG", " ", "-", " ", "de", ".", "rcenvironment", ".", "core", ".", "communication", ".", "transport", ".", "jms", ".", "common", ".", "InitialInboxConsumer", " ", "-", " ", "Remote", "-", "initiated", " ", "connection", " ", "established", ",", " ", "sending", " ", "handshake", " ", "response", " ", "to", " ", "%PATH%"],
+    String["%RCE_DATETIME%", " ", "DEBUG", " ", "-", " ", "de", ".", "rcenvironment", ".", "core", ".", "communication", ".", "transport", ".", "jms", ".", "activemq"], #, ".", "internal", ".", "ActiveMQConnectionFilterPlugin", " ", "-", " ", "Accepting", " ", "TCP"," ", "JMS", " ", "connection", " ", "from", " ", "%IPv4%"],
+    String["%RCE_DATETIME%", " ", "DEBUG", " ", "-", " ", "de", ".", "rcenvironment", ".", "core", ".", "communication", ".", "transport", ".", "jms", ".", "common"] #, ".", "InitialInboxConsumer", " ", "-", " ", "Remote", "-", "initiated", " ", "connection", " ", "established", ",", " ", "sending", " ", "handshake", " ", "response", " ", "to", " ", "%PATH%"],
 ]
 regexp = RegExp.infer(set, regex=true)
 
@@ -45,4 +45,3 @@ reps = collect(keys(Dict("%RCE_DATETIME%" => r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{
 RegExp.infer(set, replacements=reps)
 
 RegExp.infer(set, replacements=reps, regex=true)
-
