@@ -7,7 +7,7 @@
 using Conda
 Conda.add("scikit-learn")
 Conda.add("gensim")
-Conda.add("PyQt5")
+#Conda.add("PyQt5")
 #Conda.add("ipykernel")
 
 # add current path to Python
