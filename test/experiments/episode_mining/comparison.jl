@@ -37,34 +37,34 @@ function test()
         :max_gap           => 0,
         :max_time_duration => 20)
 
-    for e in [100,1000] #[4,10,100]
-        for n in [1_000_000] #[10,100,1_000,10_000,20_000]
+    for e in [10_000] #[4,10,100,1000]
+        for n in [10,100,1_000,10_000,100_000,500_000]#,1_000_000] #[10,100,1_000,10_000,20_000]
 
         sequence = rand(1:e, n)
         utilities_dict, utilities_array = ones_utilities(sequence)
 
         bs[(:mv_span,e,n)] = @benchmark begin
-        # mv_hueSet =
-                mv_span(
-                    $sequence,
-                    utilities = $utilities_dict,
-                    min_sup           = $options[:min_sup],
-                    min_utility       = $options[:min_utility],
-                    max_repetitions   = $options[:max_reps],
-                    max_gap           = $options[:max_gap],
-                    max_time_duration = $options[:max_time_duration])
+            # mv_hueSet =
+            mv_span(
+                $sequence,
+                utilities = $utilities_dict,
+                min_sup           = $options[:min_sup],
+                min_utility       = $options[:min_utility],
+                max_repetitions   = $options[:max_reps],
+                max_gap           = $options[:max_gap],
+                max_time_duration = $options[:max_time_duration])
         end
 
         bs[(:mt_span,e,n)] = @benchmark begin
-        # # mt_moSet, mt_hueSet =
-                mt_span(
-                    $sequence,
-                    $utilities_array,
-                    $options[:max_time_duration],
-                    $options[:min_sup],
-                    $options[:min_utility],
-                    $options[:max_reps],
-                    $options[:max_gap])
+            # mt_moSet, mt_hueSet =
+            mt_span(
+                $sequence,
+                $utilities_array,
+                $options[:max_time_duration],
+                $options[:min_sup],
+                $options[:min_utility],
+                $options[:max_reps],
+                $options[:max_gap])
         end
 
         # mv_hueSet = sort(mv_hueSet)
@@ -107,4 +107,4 @@ for (k,t) in bs
     end
 end
 
-CSV.write("data/experiments/episode-mining/benchmarks_mv_100-1000_1000000.csv", df)
+CSV.write("data/experiments/episode-mining/benchmarks_mv_mt_10000_10-500000.csv", df)
