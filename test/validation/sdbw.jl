@@ -44,7 +44,10 @@ end
 
 @testset "S_Dbw" begin
 
-    @test sdbw(D,C) ≈ 0.0012983587933377966
-    @test sdbw(D,C) == scattering(D,C,DC)
+    sdbw_r, scat_r, dbw_r = sdbw(D,C)
+    @test sdbw_r ≈ 0.0012983587933377966
+    
+    sdbw_r, scat_r, dbw_r = sdbw(D,C)
+    @test sdbw_r == scattering(D,C,DC)
 
 end
