@@ -1,5 +1,6 @@
-using Base.Test
+using Test
 using LogClustering.Validation
+using Statistics
 
 D = [
     -1.0 -1.1 -1.2 -1.3 -1.4 2.0 2.1 2.2;
@@ -46,7 +47,7 @@ end
 
     sdbw_r, scat_r, dbw_r = sdbw(D,C)
     @test sdbw_r ≈ 0.0012983587933377966
-    
+
     sdbw_r, scat_r, dbw_r = sdbw(D,C)
     @test sdbw_r == scattering(D,C,DC)
 
