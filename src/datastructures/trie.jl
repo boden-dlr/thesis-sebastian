@@ -1,6 +1,14 @@
+#
+# originally from:
+#   https://github.com/JuliaCollections/DataStructures.jl/blob/master/src/trie.jl
+#
+# see:
+#   https://juliacollections.github.io/DataStructures.jl/latest/trie.html
+#
+
 abstract type AbstractTrie{T} end
 
-TrieKey = Union{AbstractChar,Number}
+TrieKey = Union{AbstractChar,AbstractString,Integer}
 
 mutable struct Trie{E<:TrieKey,T} <: AbstractTrie{T}
     value::T
