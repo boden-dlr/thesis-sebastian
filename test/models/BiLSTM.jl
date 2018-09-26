@@ -98,7 +98,7 @@ info("accuracy: ", acc, " size: ", length(accuracy))
 println()
 
 
-function shortname!(model, settings = Dict(), timestamp=true, max=160)
+function shortname(model, settings = Dict(), timestamp=true, max=160)
     name = string(model)
     name = replace(name, r"[\s]+", "")
     name = replace(name, r"Parallel{.*?\}\(", "Pa")
@@ -139,7 +139,7 @@ function shortname!(model, settings = Dict(), timestamp=true, max=160)
     name
 end
 
-name = shortname!(m, OrderedDict(
+name = shortname(m, OrderedDict(
     "a" => N,
     "e" => epochs,
     "l" => max_seqlen,
@@ -161,9 +161,9 @@ W = Tracker.data.(params(m))
 # end
 
 
-# 
+#
 # Sample
-# 
+#
 
 # @load "data/models/2018-08-05_02-02-03_Pa[LSTM_1053-100_LSTM_1053-100]-Fn[id-rev]-cat_Dout_0_66-f_Pa[LSTM_200-100_LSTM_200-100]-Fn[id-rev]-cat_D_200-1053_softmax_e=100_l=40_nb=10_cvi=3_cvk=5_acc=0.025_model.bson" m
 # @load "data/models/2018-08-05_02-02-03_Pa[LSTM_1053-100_LSTM_1053-100]-Fn[id-rev]-cat_Dout_0_66-f_Pa[LSTM_200-100_LSTM_200-100]-Fn[id-rev]-cat_D_200-1053_softmax_e=100_l=40_nb=10_cvi=3_cvk=5_acc=0.025_weights.bson" W
