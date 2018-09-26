@@ -45,9 +45,9 @@ size(Xs), typeof(Xs), size(Xs[1]), typeof(Xs[1]), size(Xs[1][1]), typeof(Xs[1][1
 #     softmax)
 
 m = Chain(
-    BiPLSTM(N, hidden_state),
+    LSTM(N, hidden_state), # BiPLSTM
     Dropout(0.33),
-    BiPLSTM(hidden_state, hidden_state),
+    LSTM(hidden_state, hidden_state), # BiPLSTM
     Dense(hidden_state, N),
     softmax)
 
